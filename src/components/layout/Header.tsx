@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Menu, User, LogOut } from 'lucide-react'
+import { Menu, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { mockUser } from '@/lib/mocks/mockData'
 

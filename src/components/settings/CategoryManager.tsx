@@ -5,15 +5,12 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogClose,
 } from '@/components/ui/dialog'
 import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
 import { useMockDataStore } from '@/stores/mockDataStore'
-import { cn } from '@/lib/utils'
 
 type CategoryType = 'income' | 'expense' | 'payment' | 'asset'
 

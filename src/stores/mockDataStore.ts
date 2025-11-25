@@ -55,18 +55,6 @@ interface MockDataState {
   getCategories: (ledgerId: string, type: CategoryType) => Record<string, string[]>
 }
 
-// 가계부별 카테고리 초기화 함수
-const initializeLedgerCategories = (ledgerId: string) => {
-  return {
-    [ledgerId]: {
-      incomeCategories: { ...INCOME_CATEGORIES },
-      expenseCategories: { ...EXPENSE_CATEGORIES },
-      paymentMethods: { ...PAYMENT_METHODS },
-      assetCategories: { ...ASSET_CATEGORIES },
-    },
-  }
-}
-
 export const useMockDataStore = create<MockDataState>((set, get) => {
   // 기존 가계부들의 카테고리 초기화
   const initialCategories: {
@@ -82,10 +70,18 @@ export const useMockDataStore = create<MockDataState>((set, get) => {
   }
 
   mockLedgers.forEach((ledger) => {
-    initialCategories.incomeCategories[ledger.id] = { ...INCOME_CATEGORIES }
-    initialCategories.expenseCategories[ledger.id] = { ...EXPENSE_CATEGORIES }
-    initialCategories.paymentMethods[ledger.id] = { ...PAYMENT_METHODS }
-    initialCategories.assetCategories[ledger.id] = { ...ASSET_CATEGORIES }
+    initialCategories.incomeCategories[ledger.id] = Object.fromEntries(
+      Object.entries(INCOME_CATEGORIES).map(([key, value]) => [key, [...value]])
+    ) as Record<string, string[]>
+    initialCategories.expenseCategories[ledger.id] = Object.fromEntries(
+      Object.entries(EXPENSE_CATEGORIES).map(([key, value]) => [key, [...value]])
+    ) as Record<string, string[]>
+    initialCategories.paymentMethods[ledger.id] = Object.fromEntries(
+      Object.entries(PAYMENT_METHODS).map(([key, value]) => [key, [...value]])
+    ) as Record<string, string[]>
+    initialCategories.assetCategories[ledger.id] = Object.fromEntries(
+      Object.entries(ASSET_CATEGORIES).map(([key, value]) => [key, [...value]])
+    ) as Record<string, string[]>
   })
 
   return {
@@ -175,19 +171,27 @@ export const useMockDataStore = create<MockDataState>((set, get) => {
           ledgers: [...state.ledgers, newLedger],
           incomeCategories: {
             ...state.incomeCategories,
-            [newLedger.id]: { ...INCOME_CATEGORIES },
+            [newLedger.id]: Object.fromEntries(
+              Object.entries(INCOME_CATEGORIES).map(([key, value]) => [key, [...value]])
+            ) as Record<string, string[]>,
           },
           expenseCategories: {
             ...state.expenseCategories,
-            [newLedger.id]: { ...EXPENSE_CATEGORIES },
+            [newLedger.id]: Object.fromEntries(
+              Object.entries(EXPENSE_CATEGORIES).map(([key, value]) => [key, [...value]])
+            ) as Record<string, string[]>,
           },
           paymentMethods: {
             ...state.paymentMethods,
-            [newLedger.id]: { ...PAYMENT_METHODS },
+            [newLedger.id]: Object.fromEntries(
+              Object.entries(PAYMENT_METHODS).map(([key, value]) => [key, [...value]])
+            ) as Record<string, string[]>,
           },
           assetCategories: {
             ...state.assetCategories,
-            [newLedger.id]: { ...ASSET_CATEGORIES },
+            [newLedger.id]: Object.fromEntries(
+              Object.entries(ASSET_CATEGORIES).map(([key, value]) => [key, [...value]])
+            ) as Record<string, string[]>,
           },
         }
       }),

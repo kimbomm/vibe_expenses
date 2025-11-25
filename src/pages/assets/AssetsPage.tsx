@@ -283,7 +283,7 @@ export function AssetsPage() {
             if (editingAsset) {
               updateAsset(editingAsset.id, data)
             } else {
-              addAsset(data)
+              addAsset({ ...data, isActive: true })
             }
           }}
         />

@@ -26,12 +26,10 @@ import {
   ArrowDownRight,
   TrendingUp,
   TrendingDown,
-  CreditCard,
   Wallet,
   Calendar,
   DollarSign,
 } from 'lucide-react'
-import type { Transaction } from '@/types'
 
 export function StatisticsPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()
@@ -184,19 +182,6 @@ export function StatisticsPage() {
     const incomes = currentMonthTransactions.filter((t) => t.type === 'income')
     const categoryMap = new Map<string, number>()
     incomes.forEach((t) => {
-      const current = categoryMap.get(t.category1) || 0
-      categoryMap.set(t.category1, current + t.amount)
-    })
-    return Array.from(categoryMap.entries())
-      .map(([category, amount]) => ({ category, amount }))
-      .sort((a, b) => b.amount - a.amount)
-  }, [currentMonthTransactions])
-
-  // 지출 카테고리별 분석
-  const expenseByCategory = useMemo(() => {
-    const expenses = currentMonthTransactions.filter((t) => t.type === 'expense')
-    const categoryMap = new Map<string, number>()
-    expenses.forEach((t) => {
       const current = categoryMap.get(t.category1) || 0
       categoryMap.set(t.category1, current + t.amount)
     })
@@ -492,12 +477,14 @@ export function StatisticsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ method, percent }) => `${method} ${(percent * 100).toFixed(0)}%`}
+                      label={({ method, percent }) =>
+                        `${method} ${percent ? (percent * 100).toFixed(0) : 0}%`
+                      }
                       outerRadius={60}
                       fill="#8884d8"
                       dataKey="amount"
                     >
-                      {expenseByPaymentMethod.map((entry, index) => (
+                      {expenseByPaymentMethod.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -552,14 +539,15 @@ export function StatisticsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ category, percent }) =>
-                        `${category} ${(percent * 100).toFixed(0)}%`
-                      }
+                      label={(props) => {
+                        const { name, percent } = props
+                        return `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
+                      }}
                       outerRadius={60}
                       fill="#8884d8"
                       dataKey="amount"
                     >
-                      {incomeByCategory.map((entry, index) => (
+                      {incomeByCategory.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
