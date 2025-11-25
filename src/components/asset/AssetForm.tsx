@@ -15,11 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import {
-  ASSET_CATEGORIES,
-  getAssetCategory1List,
-  getAssetCategory2List,
-} from '@/constants/categories'
+import { useCategories } from '@/hooks/useCategories'
 import type { Asset } from '@/types'
 
 const assetSchema = z.object({
@@ -42,6 +38,8 @@ interface AssetFormProps {
 }
 
 export function AssetForm({ open, onOpenChange, ledgerId, asset, onSubmit }: AssetFormProps) {
+  const { getAssetCategory1List, getAssetCategory2List } = useCategories(ledgerId)
+
   const {
     register,
     handleSubmit,

@@ -15,17 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import {
-  INCOME_CATEGORIES,
-  EXPENSE_CATEGORIES,
-  PAYMENT_METHODS,
-  getIncomeCategory1List,
-  getIncomeCategory2List,
-  getExpenseCategory1List,
-  getExpenseCategory2List,
-  getPaymentMethod1List,
-  getPaymentMethod2List,
-} from '@/constants/categories'
+import { useCategories } from '@/hooks/useCategories'
 import type { Transaction } from '@/types'
 import { formatDateString } from '@/lib/utils'
 
@@ -58,6 +48,15 @@ export function TransactionForm({
   transaction,
   onSubmit,
 }: TransactionFormProps) {
+  const {
+    getIncomeCategory1List,
+    getIncomeCategory2List,
+    getExpenseCategory1List,
+    getExpenseCategory2List,
+    getPaymentMethod1List,
+    getPaymentMethod2List,
+  } = useCategories(ledgerId)
+
   const {
     register,
     handleSubmit,

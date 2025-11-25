@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Wallet, Users, Edit, Trash2 } from 'lucide-react'
+import { Plus, Wallet, Users, Edit, Trash2, Settings2 } from 'lucide-react'
 import { useMockDataStore } from '@/stores/mockDataStore'
 import { formatDateString } from '@/lib/utils'
 import { LedgerForm } from '@/components/ledger/LedgerForm'
@@ -77,9 +77,16 @@ export function LedgersPage() {
               <div className="text-xs text-muted-foreground">
                 생성일: {formatDateString(ledger.createdAt)}
               </div>
-              <Link to={`/ledgers/${ledger.id}/transactions`}>
-                <Button className="w-full">보기</Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link to={`/ledgers/${ledger.id}/transactions`} className="flex-1">
+                  <Button className="w-full">보기</Button>
+                </Link>
+                <Link to={`/ledgers/${ledger.id}/settings/categories`}>
+                  <Button variant="outline" size="icon" title="카테고리 설정">
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
             </CardContent>
           </Card>
         ))}

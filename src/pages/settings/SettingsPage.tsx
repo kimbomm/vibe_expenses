@@ -8,7 +8,7 @@ export function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">설정</h1>
-        <p className="text-muted-foreground mt-1">계정 및 앱 설정</p>
+        <p className="mt-1 text-muted-foreground">계정 및 앱 설정</p>
       </div>
 
       {/* 프로필 */}
@@ -26,10 +26,10 @@ export function SettingsPage() {
             />
             <div>
               <h3 className="font-semibold">{mockUser.name}</h3>
-              <p className="text-muted-foreground text-sm">{mockUser.email}</p>
+              <p className="text-sm text-muted-foreground">{mockUser.email}</p>
             </div>
           </div>
-          <div className="text-muted-foreground text-sm">
+          <div className="text-sm text-muted-foreground">
             가입일: {formatDateString(mockUser.createdAt)}
           </div>
         </CardContent>
@@ -45,14 +45,14 @@ export function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">다크 모드</h4>
-              <p className="text-muted-foreground text-sm">테마를 변경합니다</p>
+              <p className="text-sm text-muted-foreground">테마를 변경합니다</p>
             </div>
             <Button variant="outline">변경</Button>
           </div>
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">통화 설정</h4>
-              <p className="text-muted-foreground text-sm">기본 통화: KRW</p>
+              <p className="text-sm text-muted-foreground">기본 통화: KRW</p>
             </div>
             <Button variant="outline">변경</Button>
           </div>

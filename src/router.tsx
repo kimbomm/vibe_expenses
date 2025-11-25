@@ -7,6 +7,7 @@ import { TransactionsPage } from '@/pages/transactions/TransactionsPage'
 import { AssetsPage } from '@/pages/assets/AssetsPage'
 import { StatisticsPage } from '@/pages/statistics/StatisticsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
+import { CategoriesPage } from '@/pages/settings/CategoriesPage'
 
 export const router = createBrowserRouter([
   {
@@ -19,15 +20,15 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/dashboard" replace />,
-      },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
+        element: <Navigate to="/ledgers" replace />,
       },
       {
         path: 'ledgers',
         element: <LedgersPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/dashboard',
+        element: <DashboardPage />,
       },
       {
         path: 'ledgers/:ledgerId/transactions',
@@ -44,6 +45,10 @@ export const router = createBrowserRouter([
       {
         path: 'settings',
         element: <SettingsPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/settings/categories',
+        element: <CategoriesPage />,
       },
     ],
   },

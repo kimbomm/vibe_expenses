@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import {
   LayoutDashboard,
   BookOpen,
@@ -7,17 +7,13 @@ import {
   BarChart3,
   Settings,
   X,
+  Settings2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { mockLedgers } from '@/lib/mocks/mockData'
+import { useMockDataStore } from '@/stores/mockDataStore'
 
 const navigation = [
-  {
-    name: '대시보드',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
   {
     name: '가계부',
     href: '/ledgers',
@@ -26,6 +22,11 @@ const navigation = [
 ]
 
 const getLedgerNavigation = (ledgerId: string) => [
+  {
+    name: '대시보드',
+    href: `/ledgers/${ledgerId}/dashboard`,
+    icon: LayoutDashboard,
+  },
   {
     name: '거래 내역',
     href: `/ledgers/${ledgerId}/transactions`,
@@ -41,6 +42,11 @@ const getLedgerNavigation = (ledgerId: string) => [
     href: `/ledgers/${ledgerId}/statistics`,
     icon: BarChart3,
   },
+  {
+    name: '카테고리 설정',
+    href: `/ledgers/${ledgerId}/settings/categories`,
+    icon: Settings2,
+  },
 ]
 
 interface SidebarProps {
@@ -50,7 +56,15 @@ interface SidebarProps {
 
 export function Sidebar({ open = true, onClose }: SidebarProps) {
   const location = useLocation()
-  const currentLedger = mockLedgers[0] // 첫 번째 가계부를 기본으로 사용
+  const params = useParams<{ ledgerId?: string }>()
+  const { ledgers } = useMockDataStore()
+
+  // URL에서 현재 가계부 ID 추출
+  const currentLedgerId = params.ledgerId
+  const currentLedger = currentLedgerId ? ledgers.find((l) => l.id === currentLedgerId) : null
+
+  // 가계부 관련 경로인지 확인
+  const isLedgerRoute = location.pathname.includes('/ledgers/') && currentLedgerId
 
   return (
     <>
@@ -60,7 +74,7 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          'bg-background fixed top-16 left-0 z-40 h-[calc(100vh-4rem)] w-64 border-r transition-transform md:translate-x-0',
+          'fixed left-0 top-16 z-40 h-[calc(100vh-4rem)] w-64 border-r bg-background transition-transform md:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -97,19 +111,19 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
               })}
             </div>
 
-            {/* 현재 가계부 네비게이션 */}
-            {currentLedger && (
+            {/* 현재 선택된 가계부 네비게이션 */}
+            {currentLedger && isLedgerRoute && (
               <>
                 <div className="my-4 border-t" />
                 <div className="px-3 py-2">
-                  <p className="text-muted-foreground text-xs font-semibold">
+                  <p className="text-xs font-semibold text-muted-foreground">
                     {currentLedger.name}
                   </p>
                 </div>
                 <div className="space-y-1">
                   {getLedgerNavigation(currentLedger.id).map((item) => {
                     const Icon = item.icon
-                    const isActive = location.pathname.startsWith(item.href)
+                    const isActive = location.pathname === item.href
                     return (
                       <Link
                         key={item.name}
