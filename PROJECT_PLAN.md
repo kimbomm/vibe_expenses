@@ -273,8 +273,9 @@
 
 ### 상태 관리
 
-- **Zustand** - 글로벌 상태 (구현 완료)
-- **TanStack Query** - 서버 상태 (Firebase 연동 시 사용 예정)
+- **Zustand** - 글로벌 상태 (authStore, layout) + Firestore 연동 store(ledgerStore, categoryStore)
+- **Zustand + Firestore** - 실시간 구독 처리 (가계부/카테고리), 거래·자산 store 전환 예정
+- **TanStack Query** - 서버 상태 캐싱 (추후 멀티 탭/오프라인 처리 시 도입)
 
 ### 폼 & 유효성 검사
 
@@ -292,8 +293,8 @@
 
 ### Backend (예정)
 
-- **Firebase Auth** - 인증 (Google OAuth)
-- **Firestore** - NoSQL 데이터베이스
+- **Firebase Auth** - 인증 (Google OAuth, popup 방식 완료)
+- **Firestore** - NoSQL 데이터베이스 (ledgers + categories 연동 완료, transactions/assets 진행 중)
 - **Firebase Storage** - 파일 저장 (프로필 이미지 등)
 - **Cloud Functions** - 서버리스 함수 (이메일 발송 등)
 
@@ -498,13 +499,15 @@ categories/
 6. ✅ 실시간 UI 업데이트
 7. ✅ 가계부별 독립 데이터 관리 (Room 개념 구현)
 
-### Phase 3: Firebase 연동 (다음 단계)
+### Phase 3: Firebase 연동 (진행 중)
 
-1. ⏳ Firebase 프로젝트 설정
-2. ⏳ Firebase Auth (Google OAuth) 연동
-3. ⏳ Firestore 데이터베이스 연동
-4. ⏳ Security Rules 설정
-5. ⏳ 실시간 동기화 구현
+1. ✅ Firebase 프로젝트 설정
+2. ✅ Firebase Auth (Google OAuth, popup) 연동
+3. 🔄 Firestore 데이터 연동
+   - ✅ Ledgers + 기본 카테고리 (categories/{ledgerId})
+   - 🔜 Transactions, Assets (mock → Firestore 전환)
+4. ✅ Security Rules 설정 (users/ledgers/transactions/assets/categories)
+5. 🔜 실시간 동기화 구현 (거래/자산 onSnapshot)
 
 ### Phase 4: 고급 기능
 
@@ -522,6 +525,14 @@ categories/
 5. ⏳ 데이터 내보내기 (CSV, Excel)
 6. ⏳ PWA 지원
 7. ⏳ 다크 모드
+
+### 남은 TODO (우선순위)
+
+1. 🚧 Firestore 거래내역 CRUD 연동 (mockDataStore → Firestore)
+2. 🚧 Firestore 자산 CRUD 연동 및 자산 로그 저장
+3. 🚧 거래/자산 실시간 동기화(onSnapshot) 및 optimistic UI
+4. 🚧 멤버 초대/권한 관리 (ledgers.members, invitations 컬렉션)
+5. 🚧 mockDataStore 제거 및 Firestore 기반 store로 완전 전환
 
 ---
 
