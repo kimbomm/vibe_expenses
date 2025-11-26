@@ -12,7 +12,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { useMockDataStore } from '@/stores/mockDataStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
+import { useAuthStore } from '@/stores/authStore'
 
 const navigation = [
   {
@@ -58,8 +59,19 @@ interface SidebarProps {
 export function Sidebar({ open = true, onClose }: SidebarProps) {
   const location = useLocation()
   const params = useParams<{ ledgerId?: string }>()
-  const { ledgers } = useMockDataStore()
+  const { user } = useAuthStore()
+  const { ledgers, subscribeLedgers, unsubscribeLedgers } = useLedgerStore()
   const [lastLedgerId, setLastLedgerId] = useState<string | null>(null)
+
+  // 사용자 로그인 시 가계부 구독
+  useEffect(() => {
+    if (user) {
+      subscribeLedgers(user.uid)
+      return () => {
+        unsubscribeLedgers()
+      }
+    }
+  }, [user, subscribeLedgers, unsubscribeLedgers])
 
   // URL에서 현재 가계부 ID 추출
   const currentLedgerId = params.ledgerId

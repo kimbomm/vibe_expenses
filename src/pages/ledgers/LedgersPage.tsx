@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, Wallet, Users, Edit, Trash2, Settings2 } from 'lucide-react'
-import { useMockDataStore } from '@/stores/mockDataStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
+import { useAuthStore } from '@/stores/authStore'
 import { formatDateString } from '@/lib/utils'
 import { LedgerForm } from '@/components/ledger/LedgerForm'
 import type { Ledger } from '@/types'
@@ -12,7 +13,26 @@ export function LedgersPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingLedger, setEditingLedger] = useState<Ledger | undefined>()
 
-  const { ledgers, addLedger, updateLedger, deleteLedger } = useMockDataStore()
+  const { user } = useAuthStore()
+  const {
+    ledgers,
+    loading,
+    addLedger,
+    updateLedger,
+    deleteLedger,
+    subscribeLedgers,
+    unsubscribeLedgers,
+  } = useLedgerStore()
+
+  // 사용자 로그인 시 가계부 구독
+  useEffect(() => {
+    if (user) {
+      subscribeLedgers(user.uid)
+      return () => {
+        unsubscribeLedgers()
+      }
+    }
+  }, [user, subscribeLedgers, unsubscribeLedgers])
 
   return (
     <div className="space-y-6">
@@ -33,6 +53,22 @@ export function LedgersPage() {
           가계부 만들기
         </Button>
       </div>
+
+      {loading && <div className="text-center text-muted-foreground">가계부를 불러오는 중...</div>}
+
+      {!loading && ledgers.length === 0 && (
+        <div className="text-center text-muted-foreground">
+          <p className="mb-4">아직 생성된 가계부가 없습니다.</p>
+          <Button
+            onClick={() => {
+              setEditingLedger(undefined)
+              setFormOpen(true)
+            }}
+          >
+            <Plus className="mr-2 h-5 w-5" />첫 가계부 만들기
+          </Button>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {ledgers.map((ledger) => (
@@ -107,11 +143,20 @@ export function LedgersPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         ledger={editingLedger}
-        onSubmit={(data) => {
-          if (editingLedger) {
-            updateLedger(editingLedger.id, data)
-          } else {
-            addLedger(data)
+        onSubmit={async (data) => {
+          if (!user) return
+
+          try {
+            if (editingLedger) {
+              await updateLedger(editingLedger.id, data)
+            } else {
+              await addLedger(data, user.uid, user.email || '', user.displayName || '')
+            }
+            setFormOpen(false)
+            setEditingLedger(undefined)
+          } catch (error) {
+            console.error('가계부 저장 실패:', error)
+            alert('가계부 저장에 실패했습니다.')
           }
         }}
       />

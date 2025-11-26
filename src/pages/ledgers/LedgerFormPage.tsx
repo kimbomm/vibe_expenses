@@ -1,30 +1,51 @@
+import { useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { LedgerFormContent } from '@/components/ledger/LedgerFormContent'
-import { useMockDataStore } from '@/stores/mockDataStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
+import { useAuthStore } from '@/stores/authStore'
 import type { Ledger } from '@/types'
 
 export function LedgerFormPage() {
   const { ledgerId } = useParams<{ ledgerId?: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { ledgers, addLedger, updateLedger } = useMockDataStore()
+  const { user } = useAuthStore()
+  const { ledgers, subscribeLedgers, unsubscribeLedgers, addLedger, updateLedger } =
+    useLedgerStore()
+
+  // 사용자 로그인 시 가계부 구독
+  useEffect(() => {
+    if (user) {
+      subscribeLedgers(user.uid)
+      return () => {
+        unsubscribeLedgers()
+      }
+    }
+  }, [user, subscribeLedgers, unsubscribeLedgers])
 
   // ledgerId가 있으면 수정 모드
   const ledger = ledgerId ? ledgers.find((l) => l.id === ledgerId) : undefined
 
-  const handleSubmit = (
+  const handleSubmit = async (
     data: Omit<Ledger, 'id' | 'createdAt' | 'updatedAt' | 'ownerId' | 'members'>
   ) => {
-    if (ledger) {
-      updateLedger(ledger.id, data)
-    } else {
-      addLedger(data)
+    if (!user) return
+
+    try {
+      if (ledger) {
+        await updateLedger(ledger.id, data)
+      } else {
+        await addLedger(data, user.uid, user.email || '', user.displayName || '')
+      }
+      // 이전 페이지로 이동
+      const returnPath = location.state?.returnPath || '/ledgers'
+      navigate(returnPath)
+    } catch (error) {
+      console.error('가계부 저장 실패:', error)
+      alert('가계부 저장에 실패했습니다.')
     }
-    // 이전 페이지로 이동
-    const returnPath = location.state?.returnPath || '/ledgers'
-    navigate(returnPath)
   }
 
   const handleCancel = () => {

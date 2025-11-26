@@ -11,6 +11,11 @@ service cloud.firestore {
       return request.auth.uid;
     }
     
+    function ledgerDataHasMember(ledgerData) {
+      return ledgerData.memberIds != null &&
+             ledgerData.memberIds.hasAny([getUserId()]);
+    }
+    
     // 사용자가 가계부의 소유자인지 확인
     function isLedgerOwner(ledgerId) {
       return isAuthenticated() && 
@@ -18,10 +23,19 @@ service cloud.firestore {
     }
     
     // 사용자가 가계부의 멤버인지 확인
-    // Firestore 규칙 제한으로 인해 객체 배열 순회가 어려우므로
-    // 소유자 체크만 수행하고, 실제 멤버 체크는 클라이언트에서 처리
     function isLedgerMember(ledgerId) {
-      return isAuthenticated() && isLedgerOwner(ledgerId);
+      return isAuthenticated() && (
+        isLedgerOwner(ledgerId) ||
+        ledgerDataHasMember(getLedger(ledgerId).data)
+      );
+    }
+    
+    // 현재 요청 중인 가계부 문서에서 직접 멤버 여부 확인
+    function isLedgerMemberResource() {
+      return isAuthenticated() && (
+        resource.data.ownerId == getUserId() ||
+        ledgerDataHasMember(resource.data)
+      );
     }
     
     // Editor 또는 Owner 권한 확인
@@ -50,7 +64,7 @@ service cloud.firestore {
     // ============================================
     match /ledgers/{ledgerId} {
       // 읽기: 소유자 또는 멤버만 가능
-      allow read: if isAuthenticated() && isLedgerMember(ledgerId);
+      allow read: if isLedgerMemberResource();
       
       // 생성: 인증된 사용자만 가능 (ownerId는 요청한 사용자로 설정)
       allow create: if isAuthenticated() && 
