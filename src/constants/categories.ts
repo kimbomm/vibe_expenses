@@ -18,7 +18,7 @@ export const EXPENSE_CATEGORIES = {
   기타: ['세금', '보험', '기타'],
 } as const
 
-// 지출방법 카테고리 (2단계)
+// 결제수단 카테고리 (2단계)
 export const PAYMENT_METHODS = {
   현금: ['현금'],
   체크카드: ['신한', '국민', '하나', '우리', '기타'],

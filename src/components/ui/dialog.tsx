@@ -15,7 +15,7 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
-      <div className="relative z-50 w-full max-w-lg rounded-lg bg-background shadow-lg">
+      <div className="relative z-50 flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-lg bg-background shadow-lg">
         {children}
       </div>
     </div>
@@ -54,7 +54,7 @@ const DialogContent = ({
 }: {
   children: React.ReactNode
   className?: string
-}) => <div className={cn('p-6 pt-0', className)}>{children}</div>
+}) => <div className={cn('flex-1 overflow-y-auto p-6 pt-0', className)}>{children}</div>
 
 const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div

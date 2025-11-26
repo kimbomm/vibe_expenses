@@ -11,7 +11,7 @@ import { CalendarView } from '@/components/transaction/CalendarView'
 import { TransactionForm } from '@/components/transaction/TransactionForm'
 import type { Transaction } from '@/types'
 
-type DateFilter = 'all' | 'day' | 'week' | 'month'
+type DateFilter = 'day' | 'week' | 'month' | null
 
 export function TransactionsPage() {
   const { ledgerId } = useParams()
@@ -39,8 +39,8 @@ export function TransactionsPage() {
     }
 
     // 날짜 필터
-    const now = new Date()
-    if (dateFilter !== 'all') {
+    if (dateFilter !== null) {
+      const now = new Date()
       filtered = filtered.filter((t) => {
         const transactionDate = new Date(t.date)
 
@@ -54,12 +54,21 @@ export function TransactionsPage() {
           }
           case 'month':
             return (
-              transactionDate.getFullYear() === currentMonth.getFullYear() &&
-              transactionDate.getMonth() === currentMonth.getMonth()
+              transactionDate.getFullYear() === now.getFullYear() &&
+              transactionDate.getMonth() === now.getMonth()
             )
           default:
             return true
         }
+      })
+    } else {
+      // 필터가 없을 때는 currentMonth 기준으로 필터링
+      filtered = filtered.filter((t) => {
+        const transactionDate = new Date(t.date)
+        return (
+          transactionDate.getFullYear() === currentMonth.getFullYear() &&
+          transactionDate.getMonth() === currentMonth.getMonth()
+        )
       })
     }
 
@@ -137,22 +146,12 @@ export function TransactionsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">기간:</span>
           <Button
-            variant={dateFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setDateFilter('all')
-              setSelectedDate(null)
-            }}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            전체
-          </Button>
-          <Button
             variant={dateFilter === 'month' ? 'default' : 'outline'}
             size="sm"
             onClick={() => {
               setDateFilter('month')
               setSelectedDate(null)
+              setCurrentMonth(new Date()) // 현재 월로 리셋
             }}
           >
             <Calendar className="mr-2 h-4 w-4" />
@@ -164,6 +163,7 @@ export function TransactionsPage() {
             onClick={() => {
               setDateFilter('week')
               setSelectedDate(null)
+              setCurrentMonth(new Date()) // 현재 월로 리셋
             }}
           >
             <Calendar className="mr-2 h-4 w-4" />
@@ -175,6 +175,7 @@ export function TransactionsPage() {
             onClick={() => {
               setDateFilter('day')
               setSelectedDate(new Date())
+              setCurrentMonth(new Date()) // 현재 월로 리셋
             }}
           >
             <List className="mr-2 h-4 w-4" />
@@ -184,12 +185,14 @@ export function TransactionsPage() {
       </div>
 
       {/* 캘린더 뷰 (월/주 필터) 또는 리스트 뷰 (일 필터) */}
-      {(dateFilter === 'month' || dateFilter === 'week' || dateFilter === 'all') &&
-      !selectedDate ? (
+      {(dateFilter === 'month' || dateFilter === 'week' || dateFilter === null) && !selectedDate ? (
         <CalendarView
           transactions={allFilteredTransactions}
           currentDate={currentMonth}
-          onDateChange={setCurrentMonth}
+          onDateChange={(date) => {
+            setCurrentMonth(date)
+            setDateFilter(null) // 월 조정 시 필터 비활성화
+          }}
           selectedWeek={selectedWeekStart}
           onDateClick={(date) => {
             setSelectedDate(date)

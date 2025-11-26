@@ -13,7 +13,7 @@ export function CategoriesPage() {
       <div>
         <h1 className="text-3xl font-bold">카테고리 관리</h1>
         <p className="mt-1 text-muted-foreground">
-          수입, 지출, 지출방법, 자산 카테고리를 관리하세요
+          수입, 지출, 결제수단, 자산 카테고리를 관리하세요
         </p>
       </div>
 

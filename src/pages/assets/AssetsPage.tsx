@@ -93,7 +93,9 @@ export function AssetsPage() {
             <TrendingUp className="h-4 w-4 flex-shrink-0 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalAssets)}</div>
+            <div className="text-right text-2xl font-bold text-green-600">
+              {formatCurrency(totalAssets)}
+            </div>
           </CardContent>
         </Card>
 
@@ -103,7 +105,7 @@ export function AssetsPage() {
             <TrendingDown className="h-4 w-4 flex-shrink-0 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-right text-2xl font-bold text-red-600">
               {formatCurrency(totalLiabilities)}
             </div>
           </CardContent>
@@ -115,7 +117,7 @@ export function AssetsPage() {
             <Wallet className="h-4 w-4 flex-shrink-0 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(netWorth)}</div>
+            <div className="text-right text-2xl font-bold">{formatCurrency(netWorth)}</div>
           </CardContent>
         </Card>
       </div>
@@ -143,8 +145,8 @@ export function AssetsPage() {
                         <p className="text-sm text-muted-foreground">{asset.category2}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-shrink-0 text-left sm:text-right">
+                    <div className="flex items-center justify-between gap-2 sm:justify-end">
+                      <div className="flex-shrink-0 text-right">
                         <div
                           className={cn(
                             'text-lg font-bold',

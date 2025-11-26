@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -58,13 +59,35 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
   const location = useLocation()
   const params = useParams<{ ledgerId?: string }>()
   const { ledgers } = useMockDataStore()
+  const [lastLedgerId, setLastLedgerId] = useState<string | null>(null)
 
   // URL에서 현재 가계부 ID 추출
   const currentLedgerId = params.ledgerId
-  const currentLedger = currentLedgerId ? ledgers.find((l) => l.id === currentLedgerId) : null
 
-  // 가계부 관련 경로인지 확인
-  const isLedgerRoute = location.pathname.includes('/ledgers/') && currentLedgerId
+  // URL에서 ledgerId가 없어도 경로에서 추출 시도
+  const ledgerIdFromPath = location.pathname.match(/\/ledgers\/([^/]+)/)?.[1]
+  const effectiveLedgerId = currentLedgerId || ledgerIdFromPath || lastLedgerId
+
+  // 현재 가계부 ID가 있으면 저장
+  useEffect(() => {
+    if (effectiveLedgerId) {
+      setLastLedgerId(effectiveLedgerId)
+      localStorage.setItem('lastLedgerId', effectiveLedgerId)
+    }
+  }, [effectiveLedgerId])
+
+  // 초기 로드 시 localStorage에서 마지막 가계부 ID 복원
+  useEffect(() => {
+    const savedLedgerId = localStorage.getItem('lastLedgerId')
+    if (savedLedgerId && !effectiveLedgerId) {
+      setLastLedgerId(savedLedgerId)
+    }
+  }, [])
+
+  const currentLedger = effectiveLedgerId ? ledgers.find((l) => l.id === effectiveLedgerId) : null
+
+  // 가계부가 선택되어 있으면 항상 표시
+  const shouldShowLedgerMenu = !!currentLedger
 
   return (
     <>
@@ -112,7 +135,7 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
             </div>
 
             {/* 현재 선택된 가계부 네비게이션 */}
-            {currentLedger && isLedgerRoute && (
+            {shouldShowLedgerMenu && (
               <>
                 <div className="my-4 border-t" />
                 <div className="px-3 py-2">

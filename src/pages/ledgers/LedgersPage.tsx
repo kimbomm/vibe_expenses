@@ -36,8 +36,11 @@ export function LedgersPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {ledgers.map((ledger) => (
-          <Card key={ledger.id} className="relative transition-shadow hover:shadow-lg">
-            <CardHeader>
+          <Card
+            key={ledger.id}
+            className="relative flex flex-col transition-shadow hover:shadow-lg"
+          >
+            <CardHeader className="flex-shrink-0">
               <div className="flex items-start justify-between">
                 <div className="rounded-lg bg-primary/10 p-3">
                   <Wallet className="h-6 w-6 text-primary" />
@@ -67,25 +70,32 @@ export function LedgersPage() {
                 </div>
               </div>
               <CardTitle className="mt-4">{ledger.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">{ledger.description}</p>
+              {ledger.description && (
+                <p className="text-sm text-muted-foreground">{ledger.description}</p>
+              )}
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>{ledger.members.length}명의 멤버</span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                생성일: {formatDateString(ledger.createdAt)}
-              </div>
-              <div className="flex gap-2">
-                <Link to={`/ledgers/${ledger.id}/transactions`} className="flex-1">
-                  <Button className="w-full">보기</Button>
-                </Link>
-                <Link to={`/ledgers/${ledger.id}/settings/categories`}>
-                  <Button variant="outline" size="icon" title="카테고리 설정">
-                    <Settings2 className="h-4 w-4" />
-                  </Button>
-                </Link>
+            <CardContent className="flex flex-1 flex-col">
+              <div className="flex-1" />
+              <div className="mt-auto space-y-3">
+                <div className="flex flex-col items-end gap-2 text-right">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4" />
+                    <span>{ledger.members.length}명의 멤버</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    생성일: {formatDateString(ledger.createdAt)}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Link to={`/ledgers/${ledger.id}/transactions`} className="flex-1">
+                    <Button className="w-full">보기</Button>
+                  </Link>
+                  <Link to={`/ledgers/${ledger.id}/settings/categories`}>
+                    <Button variant="outline" size="icon" title="카테고리 설정">
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </CardContent>
           </Card>

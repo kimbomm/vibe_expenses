@@ -17,7 +17,7 @@ type CategoryType = 'income' | 'expense' | 'payment' | 'asset'
 const categoryLabels: Record<CategoryType, string> = {
   income: '수입 카테고리',
   expense: '지출 카테고리',
-  payment: '지출방법',
+  payment: '결제수단',
   asset: '자산 카테고리',
 }
 
@@ -116,19 +116,7 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
       <CardContent className="space-y-2">
         {Object.entries(categories).map(([category1, category2List]) => (
           <div key={category1} className="space-y-1">
-            <div className="flex items-center gap-2 rounded-lg border p-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => toggleExpand(category1)}
-              >
-                {expandedCategories.has(category1) ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
+            <div className="relative rounded-lg border p-2">
               {editingCategory1 === category1 ? (
                 <div className="flex flex-1 items-center gap-2">
                   <Input
@@ -154,29 +142,81 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
                 </div>
               ) : (
                 <>
-                  <span className="flex-1 font-medium">{category1}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => {
-                      setEditingCategory1(category1)
-                      setNewCategory1Name(category1)
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-red-500"
-                    onClick={() => handleDeleteCategory1(category1)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {/* 모바일: 수정/삭제 버튼 우상단 */}
+                  <div className="absolute right-2 top-2 flex items-center gap-1 sm:hidden">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        setEditingCategory1(category1)
+                        setNewCategory1Name(category1)
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-red-500"
+                      onClick={() => handleDeleteCategory1(category1)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {/* PC: 타이틀, 수정/삭제, 2단계 추가 모두 같은 라인 */}
+                  <div className="flex items-center gap-2 pr-20 sm:pr-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => toggleExpand(category1)}
+                    >
+                      {expandedCategories.has(category1) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <span className="flex-1 font-medium">{category1}</span>
+                    <div className="hidden items-center gap-1 sm:flex">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => {
+                          setEditingCategory1(category1)
+                          setNewCategory1Name(category1)
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-red-500"
+                        onClick={() => handleDeleteCategory1(category1)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setNewCategory2Name('')
+                          setShowAddCategory2(category1)
+                        }}
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        2단계 추가
+                      </Button>
+                    </div>
+                  </div>
+                  {/* 모바일: 2단계 추가 버튼 하단 full 너비 */}
                   <Button
                     variant="outline"
                     size="sm"
+                    className="mt-2 w-full sm:hidden"
                     onClick={() => {
                       setNewCategory2Name('')
                       setShowAddCategory2(category1)

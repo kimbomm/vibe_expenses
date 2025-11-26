@@ -163,7 +163,7 @@ export function StatisticsPage() {
     return months
   }, [ledgerId, transactions, selectedYear, selectedMonthNum])
 
-  // 지출방법별 분석
+  // 결제수단별 분석
   const expenseByPaymentMethod = useMemo(() => {
     const expenses = currentMonthTransactions.filter((t) => t.type === 'expense')
     const methodMap = new Map<string, number>()
@@ -461,11 +461,11 @@ export function StatisticsPage() {
         </CardContent>
       </Card>
 
-      {/* 지출방법별 분석 & 수입 카테고리 분석 */}
+      {/* 결제수단별 분석 & 수입 카테고리 분석 */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>지출방법별 분석</CardTitle>
+            <CardTitle>결제수단별 분석</CardTitle>
           </CardHeader>
           <CardContent>
             {expenseByPaymentMethod.length > 0 ? (

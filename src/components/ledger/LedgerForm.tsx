@@ -1,7 +1,5 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -11,19 +9,9 @@ import {
   DialogTitle,
   DialogClose,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
+import { LedgerFormContent } from './LedgerFormContent'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import type { Ledger } from '@/types'
-
-const ledgerSchema = z.object({
-  name: z.string().min(1, '가계부 이름을 입력해주세요'),
-  description: z.string().optional(),
-  currency: z.string().min(1, '통화를 선택해주세요'),
-})
-
-type LedgerFormData = z.infer<typeof ledgerSchema>
 
 interface LedgerFormProps {
   open: boolean
@@ -33,44 +21,24 @@ interface LedgerFormProps {
 }
 
 export function LedgerForm({ open, onOpenChange, ledger, onSubmit }: LedgerFormProps) {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<LedgerFormData>({
-    resolver: zodResolver(ledgerSchema),
-    defaultValues: {
-      name: ledger?.name || '',
-      description: ledger?.description || '',
-      currency: ledger?.currency || 'KRW',
-    },
-  })
+  const isMobile = useIsMobile()
+  const navigate = useNavigate()
+  const location = useLocation()
 
+  // 모바일일 때는 페이지로 이동
   useEffect(() => {
-    if (ledger) {
-      reset({
-        name: ledger.name,
-        description: ledger.description || '',
-        currency: ledger.currency,
+    if (open && isMobile) {
+      const path = ledger ? `/ledgers/${ledger.id}/edit` : '/ledgers/new'
+      navigate(path, {
+        state: { returnPath: location.pathname },
       })
-    } else {
-      reset({
-        name: '',
-        description: '',
-        currency: 'KRW',
-      })
+      onOpenChange(false)
     }
-  }, [ledger, reset])
+  }, [open, isMobile, ledger, navigate, location.pathname, onOpenChange])
 
-  const onFormSubmit = (data: LedgerFormData) => {
-    onSubmit({
-      name: data.name,
-      description: data.description,
-      currency: data.currency,
-    })
-    onOpenChange(false)
-    reset()
+  // 모바일이면 모달을 렌더링하지 않음
+  if (isMobile || !open) {
+    return null
   }
 
   return (
@@ -83,43 +51,11 @@ export function LedgerForm({ open, onOpenChange, ledger, onSubmit }: LedgerFormP
         <DialogClose onClose={() => onOpenChange(false)} />
       </DialogHeader>
       <DialogContent>
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-          {/* 가계부 이름 */}
-          <div className="space-y-2">
-            <Label htmlFor="name">가계부 이름 *</Label>
-            <Input id="name" {...register('name')} placeholder="예: 개인 가계부" />
-            {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
-          </div>
-
-          {/* 설명 */}
-          <div className="space-y-2">
-            <Label htmlFor="description">설명</Label>
-            <Input
-              id="description"
-              {...register('description')}
-              placeholder="가계부 설명 (선택사항)"
-            />
-          </div>
-
-          {/* 통화 */}
-          <div className="space-y-2">
-            <Label htmlFor="currency">통화 *</Label>
-            <Select id="currency" {...register('currency')}>
-              <option value="KRW">KRW (원)</option>
-              <option value="USD">USD (달러)</option>
-              <option value="EUR">EUR (유로)</option>
-              <option value="JPY">JPY (엔)</option>
-            </Select>
-            {errors.currency && <p className="text-sm text-red-500">{errors.currency.message}</p>}
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              취소
-            </Button>
-            <Button type="submit">{ledger ? '수정' : '추가'}</Button>
-          </DialogFooter>
-        </form>
+        <LedgerFormContent
+          ledger={ledger}
+          onSubmit={onSubmit}
+          onCancel={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   )
