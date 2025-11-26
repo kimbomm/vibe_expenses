@@ -6,7 +6,7 @@
 - **기술 스택**: Vite + React 19 + TypeScript + Tailwind CSS
 - **상태 관리**: Zustand
 - **폼 관리**: React Hook Form + Zod
-- **현재 단계**: UI 구현 완료, 더미 데이터로 CRUD 기능 구현 완료
+- **현재 단계**: Firebase Auth + Firestore 연동 완료, 회원가입 처리 완료
 
 ---
 
@@ -19,15 +19,24 @@
 - pnpm 패키지 매니저 사용
 - Path alias 설정 (`@/`)
 
-### 2. UI 컴포넌트 ✅
+### 2. 인증 시스템 ✅
+
+- **Firebase Auth 연동**: Google OAuth (Popup 방식)
+- **Firestore 사용자 정보 저장**: 자동 회원가입 처리
+  - 새 사용자: `createdAt` 포함하여 문서 생성
+  - 기존 사용자: `lastLoginAt`, `updatedAt` 업데이트
+- **세션 관리**: `onAuthStateChanged`로 자동 로그인 유지
+- **프로필 이미지**: 로드 실패 시 fallback 아바타 표시
+
+### 3. UI 컴포넌트 ✅
 
 - 기본 UI 컴포넌트: Button, Card, Input, Label, Dialog, Select
 - 레이아웃 컴포넌트: Header, Sidebar, Layout
 - 반응형 디자인 (모바일/태블릿/데스크톱)
 
-### 3. 페이지 구현 ✅
+### 4. 페이지 구현 ✅
 
-- **로그인 페이지**: Google OAuth UI (더미)
+- **로그인 페이지**: Google OAuth (Firebase 연동 완료)
 - **대시보드**: 월별 수입/지출 요약, 가계부 목록
 - **가계부 목록**: 가계부 카드 뷰
 - **거래 내역**: 캘린더 뷰 (월/주) + 리스트 뷰 (일)
@@ -35,18 +44,18 @@
 - **통계**: 카테고리별 지출 분석
 - **설정**: 프로필 및 앱 설정
 
-### 4. 상태 관리 (Zustand) ✅
+### 5. 상태 관리 (Zustand) ✅
 
 - `mockDataStore.ts`: 거래, 자산, 가계부 상태 관리
 - 추가/수정/삭제 액션 구현
 
-### 5. CRUD 기능 ✅
+### 6. CRUD 기능 ✅
 
 - **거래**: 추가, 수정, 삭제 (TransactionForm)
 - **자산**: 추가, 수정, 삭제 (AssetForm)
 - **가계부**: 추가, 수정, 삭제 (LedgerForm)
 
-### 6. 특수 기능 ✅
+### 7. 특수 기능 ✅
 
 - **캘린더 뷰**: 월별 캘린더, 주 단위 필터 시 해당 주 강조
 - **날짜 필터**: 전체/이번 달/이번 주/오늘
@@ -122,21 +131,25 @@ src/
 
 ---
 
-## 다음 단계 (Firebase 연동 전)
+## 다음 단계
 
 ### 현재 상태
 
 - ✅ UI 구현 완료
 - ✅ 더미 데이터로 CRUD 기능 동작
 - ✅ 반응형 디자인 완료
+- ✅ Firebase Auth + Firestore 연동 완료
+- ✅ 회원가입 처리 완료
 
 ### 다음 작업 예정
 
-1. Firebase 프로젝트 설정
-2. Firebase Auth (Google OAuth) 연동
-3. Firestore 데이터베이스 연동
-4. Security Rules 설정
-5. 실시간 동기화 구현
+1. Firestore 데이터 연동
+   - 가계부 (ledgers) CRUD
+   - 거래 내역 (transactions) CRUD
+   - 자산 현황 (assets) CRUD
+   - 카테고리 설정 (categories) CRUD
+2. 실시간 동기화 구현 (Firestore onSnapshot)
+3. 멤버 초대 기능 구현
 
 ---
 
@@ -164,18 +177,31 @@ pnpm format
 ## 주의사항
 
 1. **더미 데이터**: 현재는 `mockDataStore.ts`에서 더미 데이터를 관리합니다.
-2. **Firebase 미연동**: 아직 Firebase는 연결되지 않았습니다.
-3. **인증**: 로그인은 더미로 동작하며, 실제 인증은 구현되지 않았습니다.
+2. **Firebase 연동**: Auth와 사용자 정보 저장은 완료되었으나, 가계부/거래/자산 데이터는 아직 더미 데이터를 사용합니다.
+3. **인증**: Firebase Auth로 실제 인증이 동작하며, Firestore에 사용자 정보가 저장됩니다.
 
 ---
 
 ## 마지막 업데이트
 
 - 날짜: 2024-12-19
-- 상태: UI 및 더미 데이터 CRUD 완료, 모바일/PC 분기 처리 완료
-- 다음: Firebase 연동 준비 완료
+- 상태: Firebase Auth + Firestore 연동 완료, 회원가입 처리 구현 완료
+- 다음: Firestore 데이터 연동 (가계부, 거래, 자산)
 
 ## 최근 주요 변경사항
+
+### Firebase 인증 및 회원가입 (2024-12-19)
+
+- ✅ **Firebase Auth 연동 완료**
+  - Google OAuth 로그인 (Popup 방식)
+  - `onAuthStateChanged`로 자동 로그인 유지
+  - 프로필 이미지 fallback 처리
+  - COOP 오류 완화 (vite.config.ts 헤더 설정)
+- ✅ **Firestore 사용자 정보 저장**
+  - 새 사용자 자동 회원가입 처리 (`createdAt` 포함)
+  - 기존 사용자 정보 업데이트 (`lastLoginAt`, `updatedAt`)
+  - 저장 필드: uid, email, displayName, photoURL, emailVerified, createdAt, lastLoginAt, updatedAt
+- ✅ **Firestore 보안 규칙 설정 완료**
 
 ### 모바일/PC 분기 처리 (2024-12-19)
 

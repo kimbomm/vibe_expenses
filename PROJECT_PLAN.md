@@ -39,21 +39,25 @@
 
 #### 1.1 구글 로그인 및 회원가입
 
-- **OAuth 2.0** 기반 구글 인증
-- 첫 로그인 시 자동 회원가입
+- **OAuth 2.0** 기반 구글 인증 (Popup 방식)
+- 첫 로그인 시 자동 회원가입 (Firestore에 사용자 정보 저장)
 - 사용자 프로필 정보 저장
-  - 이메일
-  - 이름
-  - 프로필 이미지
-  - 가입일시
+  - uid (Firebase Auth UID)
+  - email
+  - displayName
+  - photoURL
+  - emailVerified
+  - createdAt (가입일시)
+  - lastLoginAt (마지막 로그인 시간)
+  - updatedAt (마지막 업데이트 시간)
 
 #### 1.2 세션 관리
 
-- JWT 토큰 기반 인증
-- 자동 로그인 유지
+- Firebase Auth 기반 인증
+- `onAuthStateChanged`로 자동 로그인 유지
 - 로그아웃 기능
 
-**현재 상태**: UI만 구현됨 (더미 로그인)
+**현재 상태**: ✅ Firebase Auth + Firestore 연동 완료
 
 ---
 

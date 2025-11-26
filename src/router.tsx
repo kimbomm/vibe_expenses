@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Layout } from '@/components/layout/Layout'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { DashboardPage } from '@/pages/dashboard/DashboardPage'
 import { LedgersPage } from '@/pages/ledgers/LedgersPage'
@@ -16,10 +17,19 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+    loader: async () => {
+      // 로그인 페이지 로드 시 redirect 결과 확인
+      // 이렇게 하면 로그인 페이지에서도 redirect 결과를 처리할 수 있음
+      return null
+    },
   },
   {
     path: '/',
-    element: <Layout />,
+    element: (
+      <ProtectedRoute>
+        <Layout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,
@@ -55,29 +65,53 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  // 모바일 전용 페이지 (Layout 없이 전체 화면)
+  // 모바일 전용 페이지 (Layout 없이 전체 화면, ProtectedRoute 적용)
   {
     path: 'ledgers/new',
-    element: <LedgerFormPage />,
+    element: (
+      <ProtectedRoute>
+        <LedgerFormPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: 'ledgers/:ledgerId/edit',
-    element: <LedgerFormPage />,
+    element: (
+      <ProtectedRoute>
+        <LedgerFormPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: 'ledgers/:ledgerId/transactions/new',
-    element: <TransactionFormPage />,
+    element: (
+      <ProtectedRoute>
+        <TransactionFormPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: 'ledgers/:ledgerId/transactions/:transactionId/edit',
-    element: <TransactionFormPage />,
+    element: (
+      <ProtectedRoute>
+        <TransactionFormPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: 'ledgers/:ledgerId/assets/new',
-    element: <AssetFormPage />,
+    element: (
+      <ProtectedRoute>
+        <AssetFormPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: 'ledgers/:ledgerId/assets/:assetId/edit',
-    element: <AssetFormPage />,
+    element: (
+      <ProtectedRoute>
+        <AssetFormPage />
+      </ProtectedRoute>
+    ),
   },
 ])
