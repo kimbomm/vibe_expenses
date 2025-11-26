@@ -1,12 +1,21 @@
+import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { CategoryManager } from '@/components/settings/CategoryManager'
+import { useCategoryStore } from '@/stores/categoryStore'
 
 export function CategoriesPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()
+  const subscribeCategories = useCategoryStore((state) => state.subscribeCategories)
+  const unsubscribeCategories = useCategoryStore((state) => state.unsubscribeCategories)
 
   if (!ledgerId) {
     return <div>가계부를 선택해주세요.</div>
   }
+
+  useEffect(() => {
+    subscribeCategories(ledgerId)
+    return () => unsubscribeCategories(ledgerId)
+  }, [ledgerId, subscribeCategories, unsubscribeCategories])
 
   return (
     <div className="space-y-6">

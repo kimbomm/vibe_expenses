@@ -203,6 +203,12 @@ pnpm format
   - 저장 필드: uid, email, displayName, photoURL, emailVerified, createdAt, lastLoginAt, updatedAt
 - ✅ **Firestore 보안 규칙 설정 완료**
 
+### Firestore 카테고리 연동 (2024-12-19)
+
+- ✅ 가계부 생성 시 기본 카테고리 문서(`categories/{ledgerId}`) 자동 생성
+- ✅ Category Manager가 Firestore를 실시간 구독하여 CRUD 수행
+- ✅ 거래/자산 폼(`useCategories`)이 Firestore 기반 카테고리를 참조
+
 ### 모바일/PC 분기 처리 (2024-12-19)
 
 - ✅ 거래 추가/수정: PC는 모달, 모바일은 전체 페이지로 이동

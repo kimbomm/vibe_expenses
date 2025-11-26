@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Ledger, Member } from '@/types'
+import { ensureDefaultCategories } from './categories'
 
 // Firestore의 Timestamp를 Date로 변환
 function timestampToDate(timestamp: Timestamp | Date | null | undefined): Date {
@@ -149,6 +150,9 @@ export async function createLedger(
     }
 
     const docRef = await addDoc(ledgersRef, ledgerData)
+
+    await ensureDefaultCategories(docRef.id)
+
     return docRef.id
   } catch (error) {
     console.error('가계부 생성 실패:', error)

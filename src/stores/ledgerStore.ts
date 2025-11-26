@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { collection, query, where, or, onSnapshot, type Unsubscribe } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, type Unsubscribe } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import { createLedger, updateLedgerById, deleteLedgerById } from '@/lib/firebase/ledgers'
 import type { Ledger, Member } from '@/types'
@@ -75,11 +75,8 @@ export const useLedgerStore = create<LedgerState>((set, get) => {
 
       try {
         const ledgersRef = collection(db, 'ledgers')
-        // owner이거나 멤버로 포함된 가계부만 구독
-        const q = query(
-          ledgersRef,
-          or(where('ownerId', '==', userId), where('memberIds', 'array-contains', userId))
-        )
+        // 현재는 ownerId 기준으로만 구독
+        const q = query(ledgersRef, where('ownerId', '==', userId))
 
         let isFirstSnapshot = true
 
@@ -96,12 +93,6 @@ export const useLedgerStore = create<LedgerState>((set, get) => {
               ledgerIds: ledgers.map((l) => l.id),
               isFirstSnapshot,
             })
-
-            // 멤버로 포함된 가계부도 조회
-            // Note: Firestore는 배열 필드 쿼리가 제한적이므로,
-            // 모든 가계부를 구독하고 클라이언트에서 필터링하거나
-            // Cloud Functions를 사용하는 것이 좋습니다.
-            // 현재는 ownerId로만 필터링합니다.
 
             // 첫 번째 스냅샷에서만 loading을 false로 설정
             // 이후 업데이트는 실시간으로 반영되므로 loading 상태 변경 불필요

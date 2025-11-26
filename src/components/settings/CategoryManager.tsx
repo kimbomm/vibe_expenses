@@ -2,17 +2,9 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
-import { useMockDataStore } from '@/stores/mockDataStore'
-
-type CategoryType = 'income' | 'expense' | 'payment' | 'asset'
+import { useCategoryStore } from '@/stores/categoryStore'
+import type { CategoryType } from '@/types/category'
 
 const categoryLabels: Record<CategoryType, string> = {
   income: '수입 카테고리',
@@ -38,8 +30,17 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
   const [showAddCategory1, setShowAddCategory1] = useState(false)
   const [showAddCategory2, setShowAddCategory2] = useState<string | null>(null)
 
-  const store = useMockDataStore()
-  const categories = store.getCategories(ledgerId, type)
+  const ledgerCategories = useCategoryStore((state) => state.categories[ledgerId])
+  const loading = useCategoryStore((state) => state.loading[ledgerId])
+  const addCategory1 = useCategoryStore((state) => state.addCategory1)
+  const updateCategory1 = useCategoryStore((state) => state.updateCategory1)
+  const deleteCategory1 = useCategoryStore((state) => state.deleteCategory1)
+  const addCategory2 = useCategoryStore((state) => state.addCategory2)
+  const updateCategory2 = useCategoryStore((state) => state.updateCategory2)
+  const deleteCategory2 = useCategoryStore((state) => state.deleteCategory2)
+
+  const categories = ledgerCategories?.[type] || {}
+  const isLoading = loading ?? !ledgerCategories
 
   const toggleExpand = (category1: string) => {
     const newExpanded = new Set(expandedCategories)
@@ -51,47 +52,67 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
     setExpandedCategories(newExpanded)
   }
 
-  const handleAddCategory1 = () => {
-    if (newCategory1Name.trim()) {
-      store.addCategory1(ledgerId, type, newCategory1Name.trim())
+  const handleAddCategory1 = async () => {
+    if (!newCategory1Name.trim()) return
+    try {
+      await addCategory1(ledgerId, type, newCategory1Name.trim())
       setNewCategory1Name('')
       setShowAddCategory1(false)
+    } catch (error) {
+      console.error('1단계 카테고리 추가 실패:', error)
     }
   }
 
-  const handleUpdateCategory1 = (oldName: string) => {
-    if (newCategory1Name.trim() && newCategory1Name.trim() !== oldName) {
-      store.updateCategory1(ledgerId, type, oldName, newCategory1Name.trim())
+  const handleUpdateCategory1 = async (oldName: string) => {
+    if (!newCategory1Name.trim() || newCategory1Name.trim() === oldName) return
+    try {
+      await updateCategory1(ledgerId, type, oldName, newCategory1Name.trim())
       setEditingCategory1(null)
       setNewCategory1Name('')
+    } catch (error) {
+      console.error('1단계 카테고리 수정 실패:', error)
     }
   }
 
-  const handleDeleteCategory1 = (name: string) => {
+  const handleDeleteCategory1 = async (name: string) => {
     if (confirm(`"${name}" 카테고리를 삭제하시겠습니까? 하위 카테고리도 모두 삭제됩니다.`)) {
-      store.deleteCategory1(ledgerId, type, name)
+      try {
+        await deleteCategory1(ledgerId, type, name)
+      } catch (error) {
+        console.error('1단계 카테고리 삭제 실패:', error)
+      }
     }
   }
 
-  const handleAddCategory2 = (category1: string) => {
-    if (newCategory2Name.trim()) {
-      store.addCategory2(ledgerId, type, category1, newCategory2Name.trim())
+  const handleAddCategory2 = async (category1: string) => {
+    if (!newCategory2Name.trim()) return
+    try {
+      await addCategory2(ledgerId, type, category1, newCategory2Name.trim())
       setNewCategory2Name('')
       setShowAddCategory2(null)
+    } catch (error) {
+      console.error('2단계 카테고리 추가 실패:', error)
     }
   }
 
-  const handleUpdateCategory2 = (category1: string, oldName: string) => {
-    if (newCategory2Name.trim() && newCategory2Name.trim() !== oldName) {
-      store.updateCategory2(ledgerId, type, category1, oldName, newCategory2Name.trim())
+  const handleUpdateCategory2 = async (category1: string, oldName: string) => {
+    if (!newCategory2Name.trim() || newCategory2Name.trim() === oldName) return
+    try {
+      await updateCategory2(ledgerId, type, category1, oldName, newCategory2Name.trim())
       setEditingCategory2(null)
       setNewCategory2Name('')
+    } catch (error) {
+      console.error('2단계 카테고리 수정 실패:', error)
     }
   }
 
-  const handleDeleteCategory2 = (category1: string, name: string) => {
+  const handleDeleteCategory2 = async (category1: string, name: string) => {
     if (confirm(`"${name}" 카테고리를 삭제하시겠습니까?`)) {
-      store.deleteCategory2(ledgerId, type, category1, name)
+      try {
+        await deleteCategory2(ledgerId, type, category1, name)
+      } catch (error) {
+        console.error('2단계 카테고리 삭제 실패:', error)
+      }
     }
   }
 
@@ -114,6 +135,14 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {isLoading && (
+          <div className="text-sm text-muted-foreground">카테고리를 불러오는 중입니다...</div>
+        )}
+
+        {!isLoading && Object.keys(categories).length === 0 && (
+          <div className="text-sm text-muted-foreground">등록된 카테고리가 없습니다.</div>
+        )}
+
         {Object.entries(categories).map(([category1, category2List]) => (
           <div key={category1} className="space-y-1">
             <div className="relative rounded-lg border p-2">

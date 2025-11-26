@@ -1,17 +1,27 @@
-import { useMemo } from 'react'
-import { useMockDataStore } from '@/stores/mockDataStore'
+import { useEffect, useMemo } from 'react'
+import { shallow } from 'zustand/shallow'
+import { useCategoryStore } from '@/stores/categoryStore'
+import { getDefaultCategories } from '@/lib/firebase/categories'
 
 export function useCategories(ledgerId: string) {
-  const store = useMockDataStore()
+  const { ledgerCategories, subscribeCategories, unsubscribeCategories } = useCategoryStore(
+    (state) => ({
+      ledgerCategories: state.categories[ledgerId],
+      subscribeCategories: state.subscribeCategories,
+      unsubscribeCategories: state.unsubscribeCategories,
+    }),
+    shallow
+  )
+
+  useEffect(() => {
+    if (!ledgerId) return
+    subscribeCategories(ledgerId)
+    return () => unsubscribeCategories(ledgerId)
+  }, [ledgerId, subscribeCategories, unsubscribeCategories])
 
   const categories = useMemo(() => {
-    return {
-      income: store.getCategories(ledgerId, 'income'),
-      expense: store.getCategories(ledgerId, 'expense'),
-      payment: store.getCategories(ledgerId, 'payment'),
-      asset: store.getCategories(ledgerId, 'asset'),
-    }
-  }, [ledgerId, store])
+    return ledgerCategories || getDefaultCategories()
+  }, [ledgerCategories])
 
   const getIncomeCategory1List = () => Object.keys(categories.income)
   const getIncomeCategory2List = (category1: string) => categories.income[category1] || []

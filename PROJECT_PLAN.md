@@ -388,6 +388,9 @@ categories/
 
 **주의**: 카테고리는 가계부별로 독립적으로 관리됨
 
+- 가계부 생성 시 기본 카테고리(수입/지출/결제수단/자산)를 Firestore `categories/{ledgerId}` 문서에 자동 초기화
+- Category Manager 및 폼(UI)은 해당 문서를 실시간 구독하여 동기화
+
 ### 인덱스 설계
 
 - `transactions`: ledgerId + date (DESC)
