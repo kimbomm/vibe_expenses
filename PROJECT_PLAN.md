@@ -648,6 +648,7 @@ DELETE /ledgers/:id/categories/:type/:category1/:category2
 
 - **인증/인가**: Firebase Auth JWT 토큰
 - **데이터 접근 제어**: Firestore Security Rules
+- **민감 정보 암호화**: Firestore 저장 전 클라이언트/Cloud Functions에서 특정 필드 암호화 (잔여 TODO)
 - **XSS 방지**: Input sanitization
 - **CSRF 방지**: Firebase 내장 보안
 - **환경 변수**: .env 파일 관리
