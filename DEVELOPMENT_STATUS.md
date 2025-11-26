@@ -94,15 +94,21 @@ src/
 
 ### 폼 컴포넌트
 
-- `src/components/transaction/TransactionForm.tsx` - 거래 추가/수정 폼
-- `src/components/asset/AssetForm.tsx` - 자산 추가/수정 폼
-- `src/components/ledger/LedgerForm.tsx` - 가계부 추가/수정 폼
+- `src/components/transaction/TransactionForm.tsx` - 거래 추가/수정 폼 (PC 모달)
+- `src/components/transaction/TransactionFormContent.tsx` - 거래 폼 컨텐츠 (공통)
+- `src/components/asset/AssetForm.tsx` - 자산 추가/수정 폼 (PC 모달)
+- `src/components/asset/AssetFormContent.tsx` - 자산 폼 컨텐츠 (공통)
+- `src/components/ledger/LedgerForm.tsx` - 가계부 추가/수정 폼 (PC 모달)
+- `src/components/ledger/LedgerFormContent.tsx` - 가계부 폼 컨텐츠 (공통)
 
 ### 주요 페이지
 
 - `src/pages/transactions/TransactionsPage.tsx` - 거래 내역 (캘린더 + 리스트)
+- `src/pages/transactions/TransactionFormPage.tsx` - 거래 추가/수정 페이지 (모바일)
 - `src/pages/assets/AssetsPage.tsx` - 자산 현황
+- `src/pages/assets/AssetFormPage.tsx` - 자산 추가/수정 페이지 (모바일)
 - `src/pages/ledgers/LedgersPage.tsx` - 가계부 목록
+- `src/pages/ledgers/LedgerFormPage.tsx` - 가계부 추가/수정 페이지 (모바일)
 
 ### 타입 정의
 
@@ -165,11 +171,37 @@ pnpm format
 
 ## 마지막 업데이트
 
-- 날짜: 2024-11-25
-- 상태: UI 및 더미 데이터 CRUD 완료, 가계부별 독립 데이터 관리 구현 완료
+- 날짜: 2024-12-19
+- 상태: UI 및 더미 데이터 CRUD 완료, 모바일/PC 분기 처리 완료
 - 다음: Firebase 연동 준비 완료
 
 ## 최근 주요 변경사항
+
+### 모바일/PC 분기 처리 (2024-12-19)
+
+- ✅ 거래 추가/수정: PC는 모달, 모바일은 전체 페이지로 이동
+  - 모바일 페이지: 하단 고정 버튼, 뒤로가기 버튼
+  - 라우트: `/ledgers/:ledgerId/transactions/new`, `/ledgers/:ledgerId/transactions/:id/edit`
+- ✅ 자산 추가/수정: PC는 모달, 모바일은 전체 페이지로 이동
+  - 모바일 페이지: 하단 고정 버튼, 뒤로가기 버튼
+  - 라우트: `/ledgers/:ledgerId/assets/new`, `/ledgers/:ledgerId/assets/:id/edit`
+- ✅ 가계부 추가/수정: PC는 모달, 모바일은 전체 페이지로 이동
+  - 모바일 페이지: 하단 고정 버튼, 뒤로가기 버튼
+  - 라우트: `/ledgers/new`, `/ledgers/:id/edit`
+- ✅ 폼 컨텐츠 컴포넌트 분리: 모달/페이지 공통 사용
+  - `TransactionFormContent`, `AssetFormContent`, `LedgerFormContent`
+
+### UI 개선 (2024-12-19)
+
+- ✅ 카테고리 설정 페이지 반응형 레이아웃
+  - 모바일: 수정/삭제 버튼 우상단, 2단계 추가 버튼 하단 full 너비
+  - PC: 타이틀, 수정/삭제, 2단계 추가 모두 같은 라인
+- ✅ 자산 페이지 레이아웃 개선
+  - 자산 카드: 모바일에서 금액과 버튼 양쪽 끝 배치
+  - 총 자산/부채/순자산 카드: 금액 우측 정렬
+- ✅ Sidebar 상태 유지
+  - localStorage를 사용한 마지막 선택 가계부 기억
+  - `/settings` 페이지에서도 가계부 메뉴 유지
 
 ### 아키텍처 개선
 
@@ -184,7 +216,7 @@ pnpm format
 - ✅ 커스텀 MonthPicker 컴포넌트
 - ✅ Sidebar 동적 메뉴 (가계부 선택 시 하위 메뉴 표시)
 
-### UI 개선
+### 이전 UI 개선
 
 - ✅ 카테고리 설정 진입점 명확화 (가계부 하위 메뉴)
 - ✅ 대시보드 레이아웃 개선 (통계 섹션 추가)

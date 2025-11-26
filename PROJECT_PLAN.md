@@ -614,6 +614,12 @@ DELETE /ledgers/:id/categories/:type/:category1/:category2
 - ✅ 캘린더 뷰: 월별/주별 시각화
 - ✅ 가계부 선택 시 동적 메뉴: Sidebar에서 가계부 선택 시 해당 가계부의 하위 메뉴 자동 표시
 - ✅ 년도/월 필터링: 데이터 범위 내에서만 선택 가능 (시작 년도 이전 접근 불가)
+- ✅ 모바일/PC 분기 처리: 폼 입력 시 PC는 모달, 모바일은 전체 페이지로 이동
+  - 거래 추가/수정: `/ledgers/:ledgerId/transactions/new`, `/ledgers/:ledgerId/transactions/:id/edit`
+  - 자산 추가/수정: `/ledgers/:ledgerId/assets/new`, `/ledgers/:ledgerId/assets/:id/edit`
+  - 가계부 추가/수정: `/ledgers/new`, `/ledgers/:id/edit`
+- ✅ 모바일 페이지 하단 고정 버튼: 취소/저장 버튼 하단 고정
+- ✅ Sidebar 상태 유지: localStorage를 사용한 마지막 선택 가계부 기억
 - ⏳ 무한 스크롤: 거래 내역 로딩 (구현 예정)
 - ⏳ 토스트 알림: 성공/에러 피드백 (구현 예정)
 - ⏳ 스켈레톤 로딩: 데이터 로딩 중 (구현 예정)
@@ -669,9 +675,9 @@ DELETE /ledgers/:id/categories/:type/:category1/:category2
 
 ## 마지막 업데이트
 
-- 날짜: 2024-11-25
-- 버전: 1.2.0
-- 상태: Phase 2 완료, 대시보드 및 통계 페이지 완료, Phase 3 준비 중
+- 날짜: 2024-12-19
+- 버전: 1.3.0
+- 상태: Phase 2 완료, 모바일/PC 분기 처리 완료, Phase 3 준비 중
 
 ## 주요 아키텍처 변경사항
 
