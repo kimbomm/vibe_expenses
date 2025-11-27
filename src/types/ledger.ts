@@ -15,6 +15,7 @@ export interface Ledger {
   currency: string
   ownerId: string
   members: Member[]
+  encryptionKey?: string // 가계부별 암호화 키 (Base64)
   createdAt: Date
   updatedAt: Date
 }

@@ -14,6 +14,7 @@ import {
 import { db } from './config'
 import type { Ledger, Member } from '@/types'
 import { ensureDefaultCategories } from './categories'
+import { generateEncryptionKey } from '@/lib/crypto/encryption'
 
 // Firestore의 Timestamp를 Date로 변환
 function timestampToDate(timestamp: Timestamp | Date | null | undefined): Date {
@@ -42,6 +43,7 @@ function convertFirestoreLedger(docId: string, data: any): Ledger {
     currency: data.currency,
     ownerId: data.ownerId,
     members: convertMembers(data.members || []),
+    encryptionKey: data.encryptionKey || undefined,
     createdAt: timestampToDate(data.createdAt),
     updatedAt: timestampToDate(data.updatedAt),
   }
@@ -144,6 +146,9 @@ export async function createLedger(
       joinedAt: new Date(),
     }
 
+    // 가계부별 암호화 키 생성
+    const encryptionKey = await generateEncryptionKey()
+
     const ledgerData = {
       name: ledger.name,
       description: ledger.description || '',
@@ -151,6 +156,7 @@ export async function createLedger(
       ownerId,
       memberIds: [ownerId],
       members: [member],
+      encryptionKey, // 암호화 키 저장
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }

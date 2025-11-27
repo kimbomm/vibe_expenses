@@ -7,7 +7,7 @@
 - **상태 관리**: Zustand (Firestore 연동)
 - **폼 관리**: React Hook Form + Zod
 - **백엔드**: Firebase (Auth, Firestore)
-- **현재 단계**: 멤버 초대 기능 완료, 권한 관리 완료
+- **현재 단계**: 멤버 초대 기능 완료, 권한 관리 완료, 민감 정보 암호화 완료
 
 ---
 
@@ -96,6 +96,18 @@
 - **년도/월 필터링**: 데이터 범위 제한
 - **모바일/PC 분기**: 폼 모달(PC) vs 전체 페이지(모바일)
 
+### 10. 민감 정보 암호화 ✅
+
+- **암호화 방식**: AES-256-GCM (Web Crypto API)
+- **키 관리**: 가계부별 고유 암호화 키 (Firestore에 저장)
+- **암호화 대상**:
+  - 거래: `amount`, `description`, `memo`
+  - 자산: `name`, `balance`, `memo`
+  - 자산로그: `previousBalance`, `newBalance`, `description`
+- **자동 처리**: Store에서 저장 시 암호화, 조회 시 복호화
+- **하위 호환**: 기존 비암호화 데이터도 정상 복호화 (수정 시 자동 암호화)
+- **공유 가계부 지원**: 동일 가계부 멤버는 같은 키로 복호화
+
 ---
 
 ## 프로젝트 구조
@@ -140,6 +152,12 @@ src/
 │   │   ├── assets.ts
 │   │   ├── categories.ts
 │   │   └── invitations.ts
+│   ├── crypto/          # 암호화 유틸리티
+│   │   ├── encryption.ts       # AES-GCM 기본 암호화
+│   │   ├── transactionCrypto.ts # 거래 데이터 암호화
+│   │   ├── assetCrypto.ts      # 자산 데이터 암호화
+│   │   ├── migration.ts        # 기존 데이터 마이그레이션
+│   │   └── index.ts
 │   └── utils.ts         # 유틸 함수
 │
 ├── hooks/               # 커스텀 훅
@@ -160,7 +178,7 @@ users/{userId}
   - uid, email, displayName, photoURL, createdAt, lastLoginAt
 
 ledgers/{ledgerId}
-  - name, description, currency, ownerId, members[], memberIds[]
+  - name, description, currency, ownerId, members[], memberIds[], encryptionKey
 
   /transactions/{YYYY-MM}/items/{transactionId}
     - type, amount, date, category1, category2, description, ...
@@ -191,13 +209,15 @@ invitations/{invitationId}
 - ✅ 멤버 초대 기능 완료
 - ✅ 권한 관리 완료
 - ✅ 반응형 디자인 완료
+- ✅ 민감 정보 암호화 완료
 
 ### 다음 작업 예정
 
 1. **데이터 내보내기** - CSV, Excel 형식
 2. **다크 모드** - 테마 토글
 3. **PWA 지원** - 오프라인 및 설치 기능
-4. **민감 정보 암호화** (선택) - 필요 시 필드 암호화
+4. **검색 기능** - 거래 내역 검색
+5. **Vercel 배포** - 프로덕션 배포
 
 ---
 
@@ -226,12 +246,35 @@ pnpm firebase deploy --only firestore:indexes
 ## 마지막 업데이트
 
 - 날짜: 2024-11-27
-- 상태: 멤버 초대 기능 완료, 권한 관리 완료
+- 상태: 멤버 초대 기능 완료, 권한 관리 완료, 민감 정보 암호화 완료
 - 다음: 데이터 내보내기, 다크 모드
 
 ---
 
 ## 최근 주요 변경사항
+
+### 민감 정보 암호화 (2024-11-27)
+
+- ✅ **암호화 유틸리티** (`src/lib/crypto/`)
+  - AES-256-GCM 암호화 (Web Crypto API)
+  - 가계부별 고유 암호화 키 생성/관리
+  - 숫자/문자열 암호화 헬퍼 함수
+
+- ✅ **거래 데이터 암호화** (`transactionCrypto.ts`)
+  - 암호화 필드: `amount`, `description`, `memo`
+  - Store에서 자동 암호화/복호화 처리
+
+- ✅ **자산 데이터 암호화** (`assetCrypto.ts`)
+  - 자산: `name`, `balance`, `memo`
+  - 자산로그: `previousBalance`, `newBalance`, `description`
+
+- ✅ **마이그레이션 도구** (`migration.ts`)
+  - 기존 가계부에 암호화 키 추가
+  - 콘솔에서 실행 가능
+
+- ✅ **하위 호환성**
+  - 기존 비암호화 데이터 정상 조회
+  - 수정 시 자동 암호화 적용
 
 ### 멤버 초대 기능 (2024-11-27)
 

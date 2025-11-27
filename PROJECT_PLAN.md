@@ -567,6 +567,11 @@ invitations/
 - **인증/인가**: Firebase Auth JWT 토큰
 - **데이터 접근 제어**: Firestore Security Rules
 - **권한 체크**: 클라이언트 측 권한 체크 (useLedgerPermission 훅)
+- **민감 정보 암호화**: AES-256-GCM 클라이언트 암호화 ✅
+  - 가계부별 고유 암호화 키
+  - 거래: 금액, 내역, 메모
+  - 자산: 이름, 잔액, 메모
+  - 자산로그: 이전/현재 잔액, 설명
 - **XSS 방지**: Input sanitization
 - **CSRF 방지**: Firebase 내장 보안
 - **환경 변수**: .env 파일 관리
@@ -577,8 +582,8 @@ invitations/
 ## 마지막 업데이트
 
 - 날짜: 2024-11-27
-- 버전: 2.0.0
-- 상태: Phase 3 완료, 멤버 초대 기능 완료
+- 버전: 2.1.0
+- 상태: Phase 3 완료, 멤버 초대 기능 완료, 민감 정보 암호화 완료
 
 ## 주요 아키텍처 변경사항
 
@@ -602,3 +607,14 @@ invitations/
 - Sidebar에서 가계부 선택 시 해당 가계부의 하위 메뉴 자동 표시
 - 가계부별 독립적인 메뉴 구조
 - 멤버 관리 메뉴 추가
+
+### 민감 정보 암호화
+
+- **암호화 방식**: AES-256-GCM (Web Crypto API)
+- **키 관리**: 가계부별 고유 암호화 키 (Firestore에 저장)
+- **암호화 대상**:
+  - 거래: `amount`, `description`, `memo`
+  - 자산: `name`, `balance`, `memo`
+  - 자산로그: `previousBalance`, `newBalance`, `description`
+- **하위 호환**: 기존 데이터는 수정 시 자동 암호화
+- **공유 가계부**: 같은 가계부 멤버는 동일 키로 복호화 가능

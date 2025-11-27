@@ -7,6 +7,12 @@ import {
   getTransactionsByLedgerAndMonth,
   getTransactionsByLedgerAndMonths,
 } from '@/lib/firebase/transactions'
+import {
+  encryptTransaction,
+  encryptTransactionUpdate,
+  decryptTransactions,
+} from '@/lib/crypto/transactionCrypto'
+import { useLedgerStore } from './ledgerStore'
 import type { Transaction } from '@/types'
 
 interface TransactionState {
@@ -31,6 +37,13 @@ interface TransactionState {
   deleteTransaction: (id: string) => Promise<void>
 }
 
+// 가계부의 암호화 키 가져오기
+function getEncryptionKey(ledgerId: string): string | undefined {
+  const ledgers = useLedgerStore.getState().ledgers
+  const ledger = ledgers.find((l) => l.id === ledgerId)
+  return ledger?.encryptionKey
+}
+
 export const useTransactionStore = create<TransactionState>((set, get) => ({
   transactions: {},
   loading: {},
@@ -51,7 +64,14 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     }))
 
     try {
-      const transactions = await getTransactionsByLedger(ledgerId)
+      let transactions = await getTransactionsByLedger(ledgerId)
+
+      // 복호화
+      const encryptionKey = getEncryptionKey(ledgerId)
+      if (encryptionKey) {
+        transactions = await decryptTransactions(transactions, encryptionKey)
+      }
+
       set((state) => ({
         transactions: { ...state.transactions, [ledgerId]: transactions },
         loading: { ...state.loading, [ledgerId]: false },
@@ -81,7 +101,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     }))
 
     try {
-      const monthTransactions = await getTransactionsByLedgerAndMonth(ledgerId, year, month)
+      let monthTransactions = await getTransactionsByLedgerAndMonth(ledgerId, year, month)
+
+      // 복호화
+      const encryptionKey = getEncryptionKey(ledgerId)
+      if (encryptionKey) {
+        monthTransactions = await decryptTransactions(monthTransactions, encryptionKey)
+      }
 
       // 기존 거래내역과 병합 (같은 월의 거래는 교체)
       set((state) => {
@@ -123,7 +149,14 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     }))
 
     try {
-      const transactions = await getTransactionsByLedgerAndMonths(ledgerId, monthKeys)
+      let transactions = await getTransactionsByLedgerAndMonths(ledgerId, monthKeys)
+
+      // 복호화
+      const encryptionKey = getEncryptionKey(ledgerId)
+      if (encryptionKey) {
+        transactions = await decryptTransactions(transactions, encryptionKey)
+      }
+
       set((state) => ({
         transactions: { ...state.transactions, [ledgerId]: transactions },
         loading: { ...state.loading, [loadingKey]: false },
@@ -143,7 +176,14 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   addTransaction: async (transaction, userId) => {
     try {
       console.log('거래내역 생성 시작:', { transaction, userId })
-      const transactionId = await createTransaction(transaction, userId)
+
+      // 암호화
+      const encryptionKey = getEncryptionKey(transaction.ledgerId)
+      const dataToSave = encryptionKey
+        ? await encryptTransaction(transaction, encryptionKey)
+        : transaction
+
+      const transactionId = await createTransaction(dataToSave, userId)
       console.log('거래내역 생성 완료:', transactionId)
 
       // 생성 후 해당 월의 거래내역 다시 조회
@@ -174,7 +214,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         throw new Error('Ledger ID not found for transaction update')
       }
 
-      await updateTransactionById(ledgerId, id, updates, userId)
+      // 암호화
+      const encryptionKey = getEncryptionKey(ledgerId)
+      const dataToSave = encryptionKey
+        ? await encryptTransactionUpdate(updates, encryptionKey)
+        : updates
+
+      await updateTransactionById(ledgerId, id, dataToSave, userId)
 
       // 날짜가 변경되었을 수 있으므로, 관련 월들을 다시 조회
       const transaction = transactions[ledgerId]?.find((t) => t.id === id)

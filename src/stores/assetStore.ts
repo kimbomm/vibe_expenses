@@ -7,6 +7,13 @@ import {
   getAssetsByLedger,
   getAssetLogsByLedger,
 } from '@/lib/firebase/assets'
+import {
+  encryptAsset,
+  encryptAssetUpdate,
+  decryptAssets,
+  decryptAssetLogs,
+} from '@/lib/crypto/assetCrypto'
+import { useLedgerStore } from './ledgerStore'
 import type { Asset, AssetLog } from '@/types'
 
 interface AssetState {
@@ -33,6 +40,13 @@ interface AssetState {
   deactivateAsset: (ledgerId: string, assetId: string, userId: string) => Promise<void>
 }
 
+// 가계부의 암호화 키 가져오기
+function getEncryptionKey(ledgerId: string): string | undefined {
+  const ledgers = useLedgerStore.getState().ledgers
+  const ledger = ledgers.find((l) => l.id === ledgerId)
+  return ledger?.encryptionKey
+}
+
 export const useAssetStore = create<AssetState>((set, get) => ({
   assets: {},
   assetLogs: {},
@@ -54,7 +68,14 @@ export const useAssetStore = create<AssetState>((set, get) => ({
     }))
 
     try {
-      const assets = await getAssetsByLedger(ledgerId)
+      let assets = await getAssetsByLedger(ledgerId)
+
+      // 복호화
+      const encryptionKey = getEncryptionKey(ledgerId)
+      if (encryptionKey) {
+        assets = await decryptAssets(assets, encryptionKey)
+      }
+
       set((state) => ({
         assets: { ...state.assets, [ledgerId]: assets },
         loading: { ...state.loading, [loadingKey]: false },
@@ -84,7 +105,14 @@ export const useAssetStore = create<AssetState>((set, get) => ({
     }))
 
     try {
-      const logs = await getAssetLogsByLedger(ledgerId)
+      let logs = await getAssetLogsByLedger(ledgerId)
+
+      // 복호화
+      const encryptionKey = getEncryptionKey(ledgerId)
+      if (encryptionKey) {
+        logs = await decryptAssetLogs(logs, encryptionKey)
+      }
+
       set((state) => ({
         assetLogs: { ...state.assetLogs, [ledgerId]: logs },
         loading: { ...state.loading, [loadingKey]: false },
@@ -103,7 +131,12 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   addAsset: async (asset, userId) => {
     try {
       console.log('자산 생성 시작:', { asset, userId })
-      const assetId = await createAsset(asset, userId)
+
+      // 암호화
+      const encryptionKey = getEncryptionKey(asset.ledgerId)
+      const dataToSave = encryptionKey ? await encryptAsset(asset, encryptionKey) : asset
+
+      const assetId = await createAsset(dataToSave, userId)
       console.log('자산 생성 완료:', assetId)
 
       // 생성 후 해당 가계부의 자산 및 로그 다시 조회
@@ -122,7 +155,11 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   // 자산 수정
   updateAsset: async (ledgerId, assetId, updates, userId) => {
     try {
-      await updateAssetById(ledgerId, assetId, updates, userId)
+      // 암호화
+      const encryptionKey = getEncryptionKey(ledgerId)
+      const dataToSave = encryptionKey ? await encryptAssetUpdate(updates, encryptionKey) : updates
+
+      await updateAssetById(ledgerId, assetId, dataToSave, userId)
 
       // 수정 후 해당 가계부의 자산 및 로그 다시 조회
       await get().fetchAssets(ledgerId)
