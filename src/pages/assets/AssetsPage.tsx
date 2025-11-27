@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -13,12 +13,12 @@ import {
   X,
   Trash2,
 } from 'lucide-react'
-import { useMockDataStore } from '@/stores/mockDataStore'
-import { mockAssetLogs } from '@/lib/mocks/mockData'
+import { useAssetStore } from '@/stores/assetStore'
+import { useAuthStore } from '@/stores/authStore'
 import { formatCurrency, formatDateString, formatRelativeTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { AssetForm } from '@/components/asset/AssetForm'
-import type { Asset } from '@/types'
+import type { Asset, AssetLog } from '@/types'
 
 export function AssetsPage() {
   const { ledgerId } = useParams()
@@ -26,14 +26,53 @@ export function AssetsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | undefined>()
 
-  const { assets: storeAssets, addAsset, updateAsset, deleteAsset } = useMockDataStore()
+  const { user } = useAuthStore()
 
-  const assets = storeAssets.filter((a) => a.ledgerId === ledgerId && a.isActive)
+  // 빈 배열을 상수로 정의하여 같은 참조를 유지
+  const EMPTY_ASSETS: Asset[] = useMemo(() => [], [])
+  const EMPTY_LOGS: AssetLog[] = useMemo(() => [], [])
 
-  // 자산 로그 필터링 및 정렬
-  const assetLogs = mockAssetLogs
-    .filter((log) => log.ledgerId === ledgerId)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  const storeAssets = useAssetStore((state) => {
+    if (!ledgerId) return EMPTY_ASSETS
+    return state.assets[ledgerId] || EMPTY_ASSETS
+  })
+  const storeAssetLogs = useAssetStore((state) => {
+    if (!ledgerId) return EMPTY_LOGS
+    return state.assetLogs[ledgerId] || EMPTY_LOGS
+  })
+  const fetchAssets = useAssetStore((state) => state.fetchAssets)
+  const fetchAssetLogs = useAssetStore((state) => state.fetchAssetLogs)
+  const addAsset = useAssetStore((state) => state.addAsset)
+  const updateAsset = useAssetStore((state) => state.updateAsset)
+  const deleteAsset = useAssetStore((state) => state.deleteAsset)
+
+  // 가계부별 자산 조회 (페이지 마운트 시 및 포커스 시)
+  useEffect(() => {
+    if (!ledgerId) return
+
+    // 초기 로드
+    fetchAssets(ledgerId)
+    fetchAssetLogs(ledgerId)
+
+    // 페이지 포커스 시 다시 조회
+    const handleFocus = () => {
+      fetchAssets(ledgerId)
+      fetchAssetLogs(ledgerId)
+    }
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledgerId])
+
+  const assets = storeAssets.filter((a) => a.isActive)
+
+  // 자산 로그 정렬
+  const assetLogs = [...storeAssetLogs].sort(
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+  )
 
   // 카테고리별 그룹핑
   const assetsByCategory = assets.reduce(
@@ -171,8 +210,8 @@ export function AssetsPage() {
                           variant="ghost"
                           size="icon"
                           onClick={() => {
-                            if (confirm('정말 삭제하시겠습니까?')) {
-                              deleteAsset(asset.id)
+                            if (ledgerId && confirm('정말 삭제하시겠습니까?')) {
+                              deleteAsset(ledgerId, asset.id)
                             }
                           }}
                         >
@@ -275,17 +314,17 @@ export function AssetsPage() {
       )}
 
       {/* 자산 추가/수정 폼 */}
-      {ledgerId && (
+      {ledgerId && user && (
         <AssetForm
           open={formOpen}
           onOpenChange={setFormOpen}
           ledgerId={ledgerId}
           asset={editingAsset}
-          onSubmit={(data) => {
+          onSubmit={async (data) => {
             if (editingAsset) {
-              updateAsset(editingAsset.id, data)
+              await updateAsset(ledgerId, editingAsset.id, data, user.uid)
             } else {
-              addAsset({ ...data, isActive: true })
+              await addAsset({ ...data, isActive: true }, user.uid)
             }
           }}
         />

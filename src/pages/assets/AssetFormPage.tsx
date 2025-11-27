@@ -1,8 +1,10 @@
+import { useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { AssetFormContent } from '@/components/asset/AssetFormContent'
-import { useMockDataStore } from '@/stores/mockDataStore'
+import { useAssetStore } from '@/stores/assetStore'
+import { useAuthStore } from '@/stores/authStore'
 import type { Asset } from '@/types'
 
 export function AssetFormPage() {
@@ -12,7 +14,25 @@ export function AssetFormPage() {
   }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { assets, addAsset, updateAsset } = useMockDataStore()
+  const { user } = useAuthStore()
+
+  // 빈 배열을 상수로 정의하여 같은 참조를 유지
+  const EMPTY_ARRAY: Asset[] = useMemo(() => [], [])
+
+  const assets = useAssetStore((state) => {
+    if (!ledgerId) return EMPTY_ARRAY
+    return state.assets[ledgerId] || EMPTY_ARRAY
+  })
+  const fetchAssets = useAssetStore((state) => state.fetchAssets)
+  const addAsset = useAssetStore((state) => state.addAsset)
+  const updateAsset = useAssetStore((state) => state.updateAsset)
+
+  // 가계부별 자산 조회 (페이지 마운트 시)
+  useEffect(() => {
+    if (!ledgerId) return
+    fetchAssets(ledgerId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledgerId])
 
   // assetId가 있으면 수정 모드
   const asset = assetId ? assets.find((a) => a.id === assetId) : undefined
@@ -21,26 +41,29 @@ export function AssetFormPage() {
     return <div>가계부를 선택해주세요.</div>
   }
 
-  const handleSubmit = (
+  const handleSubmit = async (
     data: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'isActive' | 'currency'>
   ) => {
-    if (asset) {
-      updateAsset(asset.id, data)
-    } else {
-      addAsset({ ...data, isActive: true })
+    if (!user) return
+
+    try {
+      if (asset) {
+        await updateAsset(ledgerId, asset.id, data, user.uid)
+      } else {
+        await addAsset({ ...data, isActive: true }, user.uid)
+      }
+      // 이전 페이지로 이동
+      const returnPath = location.state?.returnPath || `/ledgers/${ledgerId}/assets`
+      navigate(returnPath)
+    } catch (error) {
+      console.error('자산 저장 실패:', error)
+      alert('자산 저장에 실패했습니다.')
     }
-    // 이전 페이지로 이동
-    const returnPath = location.state?.returnPath || `/ledgers/${ledgerId}/assets`
-    navigate(returnPath)
   }
 
   const handleCancel = () => {
     const returnPath = location.state?.returnPath || `/ledgers/${ledgerId}/assets`
     navigate(returnPath)
-  }
-
-  const handleFormSubmit = () => {
-    formRef.current?.requestSubmit()
   }
 
   return (

@@ -48,7 +48,7 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && getUserId() == userId;
     }
     
-    // ledgers + transactions 서브컬렉션
+    // ledgers + 서브컬렉션 (transactions, assets, assetLogs)
     match /ledgers/{ledgerId} {
       allow read: if isLedgerMemberResource();
       allow create: if isAuthenticated() && request.resource.data.ownerId == getUserId();
@@ -62,6 +62,21 @@ service cloud.firestore {
         allow update: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
         allow delete: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
       }
+      
+      // assets 서브컬렉션
+      match /assets/{assetId} {
+        allow read: if isAuthenticated() && isLedgerMember(ledgerId);
+        allow create: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+        allow update: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+        allow delete: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+      }
+      
+      // assetLogs 서브컬렉션
+      match /assetLogs/{logId} {
+        allow read: if isAuthenticated() && isLedgerMember(ledgerId);
+        allow create: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+        allow update, delete: if false;
+      }
     }
     
     // categories
@@ -69,21 +84,6 @@ service cloud.firestore {
       allow read: if isAuthenticated() && isLedgerMember(ledgerId);
       allow create, update: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
       allow delete: if isAuthenticated() && isLedgerOwner(ledgerId);
-    }
-    
-    // assets
-    match /assets/{assetId} {
-      allow read: if isAuthenticated() && isLedgerMember(resource.data.ledgerId);
-      allow create: if isAuthenticated() && isLedgerMember(request.resource.data.ledgerId) && canEdit(request.resource.data.ledgerId);
-      allow update: if isAuthenticated() && isLedgerMember(resource.data.ledgerId) && canEdit(resource.data.ledgerId);
-      allow delete: if isAuthenticated() && isLedgerMember(resource.data.ledgerId) && canEdit(resource.data.ledgerId);
-    }
-    
-    // assetLogs
-    match /assetLogs/{logId} {
-      allow read: if isAuthenticated() && isLedgerMember(resource.data.ledgerId);
-      allow create: if isAuthenticated() && isLedgerMember(request.resource.data.ledgerId) && canEdit(request.resource.data.ledgerId);
-      allow update, delete: if false;
     }
     
     // invitations
