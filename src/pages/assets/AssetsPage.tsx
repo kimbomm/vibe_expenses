@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useAssetStore } from '@/stores/assetStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useLedgerPermission } from '@/hooks/useLedgerPermission'
 import { formatCurrency, formatDateString, formatRelativeTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { AssetForm } from '@/components/asset/AssetForm'
@@ -27,6 +28,7 @@ export function AssetsPage() {
   const [editingAsset, setEditingAsset] = useState<Asset | undefined>()
 
   const { user } = useAuthStore()
+  const { canEdit } = useLedgerPermission(ledgerId)
 
   // 빈 배열을 상수로 정의하여 같은 참조를 유지
   const EMPTY_ASSETS: Asset[] = useMemo(() => [], [])
@@ -110,17 +112,19 @@ export function AssetsPage() {
             <History className="mr-2 h-5 w-5" />
             변경 이력
           </Button>
-          <Button
-            size="lg"
-            className="w-full sm:w-auto"
-            onClick={() => {
-              setEditingAsset(undefined)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            자산 추가
-          </Button>
+          {canEdit && (
+            <Button
+              size="lg"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setEditingAsset(undefined)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              자산 추가
+            </Button>
+          )}
         </div>
       </div>
 
@@ -195,29 +199,31 @@ export function AssetsPage() {
                           {formatCurrency(Math.abs(asset.balance))}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingAsset(asset)
-                            setFormOpen(true)
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            if (ledgerId && confirm('정말 삭제하시겠습니까?')) {
-                              deleteAsset(ledgerId, asset.id)
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
+                      {canEdit && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingAsset(asset)
+                              setFormOpen(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (ledgerId && confirm('정말 삭제하시겠습니까?')) {
+                                deleteAsset(ledgerId, asset.id)
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

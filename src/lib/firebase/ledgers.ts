@@ -79,20 +79,26 @@ function convertFirestoreLedger(docId: string, data: any): Ledger {
 export async function getLedgersByUser(userId: string): Promise<Ledger[]> {
   try {
     const ledgersRef = collection(db, 'ledgers')
-    const q = query(ledgersRef, where('ownerId', '==', userId))
-    const querySnapshot = await getDocs(q)
+    const ledgerMap = new Map<string, Ledger>()
 
-    const ledgers: Ledger[] = []
-    querySnapshot.forEach((doc) => {
-      ledgers.push(convertFirestoreLedger(doc.id, doc.data()))
+    // 1. 소유한 가계부 조회
+    const ownerQuery = query(ledgersRef, where('ownerId', '==', userId))
+    const ownerSnapshot = await getDocs(ownerQuery)
+    ownerSnapshot.forEach((doc) => {
+      ledgerMap.set(doc.id, convertFirestoreLedger(doc.id, doc.data()))
     })
 
-    // 멤버로 포함된 가계부도 조회 (ownerId가 아닌 경우)
-    // Note: Firestore는 배열 필드에 대한 쿼리가 제한적이므로,
-    // 클라이언트에서 필터링하거나 Cloud Functions를 사용하는 것이 좋습니다.
-    // 현재는 ownerId로만 조회하고, 멤버로 포함된 가계부는 실시간 리스너에서 처리합니다.
+    // 2. 멤버로 포함된 가계부 조회 (array-contains 사용)
+    const memberQuery = query(ledgersRef, where('memberIds', 'array-contains', userId))
+    const memberSnapshot = await getDocs(memberQuery)
+    memberSnapshot.forEach((doc) => {
+      // 중복 방지 (이미 owner로 조회된 경우)
+      if (!ledgerMap.has(doc.id)) {
+        ledgerMap.set(doc.id, convertFirestoreLedger(doc.id, doc.data()))
+      }
+    })
 
-    return ledgers
+    return Array.from(ledgerMap.values())
   } catch (error) {
     console.error('가계부 조회 실패:', error)
     throw error

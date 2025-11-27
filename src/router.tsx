@@ -12,6 +12,8 @@ import { AssetFormPage } from '@/pages/assets/AssetFormPage'
 import { StatisticsPage } from '@/pages/statistics/StatisticsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { CategoriesPage } from '@/pages/settings/CategoriesPage'
+import { MembersPage } from '@/pages/members/MembersPage'
+import { InvitationsPage } from '@/pages/invitations/InvitationsPage'
 
 export const router = createBrowserRouter([
   {
@@ -62,6 +64,14 @@ export const router = createBrowserRouter([
       {
         path: 'ledgers/:ledgerId/settings/categories',
         element: <CategoriesPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/members',
+        element: <MembersPage />,
+      },
+      {
+        path: 'invitations',
+        element: <InvitationsPage />,
       },
     ],
   },

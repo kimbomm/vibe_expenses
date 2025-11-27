@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Wallet, Users, Edit, Trash2, Settings2 } from 'lucide-react'
+import { Plus, Wallet, Users, Edit, Trash2, Settings2, Share2 } from 'lucide-react'
 import { useLedgerStore } from '@/stores/ledgerStore'
 import { useAuthStore } from '@/stores/authStore'
 import { formatDateString } from '@/lib/utils'
@@ -72,71 +72,95 @@ export function LedgersPage() {
       )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {ledgers.map((ledger) => (
-          <Card
-            key={ledger.id}
-            className="relative flex flex-col transition-shadow hover:shadow-lg"
-          >
-            <CardHeader className="flex-shrink-0">
-              <div className="flex items-start justify-between">
-                <div className="rounded-lg bg-primary/10 p-3">
-                  <Wallet className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setEditingLedger(ledger)
-                      setFormOpen(true)
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      if (confirm('정말 삭제하시겠습니까?')) {
-                        deleteLedger(ledger.id)
-                      }
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
-                </div>
-              </div>
-              <CardTitle className="mt-4">{ledger.name}</CardTitle>
-              {ledger.description && (
-                <p className="text-sm text-muted-foreground">{ledger.description}</p>
-              )}
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col">
-              <div className="flex-1" />
-              <div className="mt-auto space-y-3">
-                <div className="flex flex-col items-end gap-2 text-right">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{ledger.members.length}명의 멤버</span>
+        {ledgers.map((ledger) => {
+          const isShared = ledger.ownerId !== user?.uid
+          const isOwner = ledger.ownerId === user?.uid
+
+          return (
+            <Card
+              key={ledger.id}
+              className={`relative flex flex-col transition-shadow hover:shadow-lg ${
+                isShared
+                  ? 'border-blue-200 bg-blue-50/30 dark:border-blue-800 dark:bg-blue-950/20'
+                  : ''
+              }`}
+            >
+              <CardHeader className="flex-shrink-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`rounded-lg p-3 ${isShared ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-primary/10'}`}
+                    >
+                      {isShared ? (
+                        <Share2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      ) : (
+                        <Wallet className="h-6 w-6 text-primary" />
+                      )}
+                    </div>
+                    {isShared && (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                        공유됨
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    생성일: {formatDateString(ledger.createdAt)}
+                  {isOwner && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setEditingLedger(ledger)
+                          setFormOpen(true)
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (confirm('정말 삭제하시겠습니까?')) {
+                            deleteLedger(ledger.id)
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <CardTitle className="mt-4">{ledger.name}</CardTitle>
+                {ledger.description && (
+                  <p className="text-sm text-muted-foreground">{ledger.description}</p>
+                )}
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col">
+                <div className="flex-1" />
+                <div className="mt-auto space-y-3">
+                  <div className="flex flex-col items-end gap-2 text-right">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>{ledger.members.length}명의 멤버</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      생성일: {formatDateString(ledger.createdAt)}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link to={`/ledgers/${ledger.id}/transactions`} className="flex-1">
+                      <Button className="w-full">보기</Button>
+                    </Link>
+                    <Link to={`/ledgers/${ledger.id}/settings/categories`}>
+                      <Button variant="outline" size="icon" title="카테고리 설정">
+                        <Settings2 className="h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Link to={`/ledgers/${ledger.id}/transactions`} className="flex-1">
-                    <Button className="w-full">보기</Button>
-                  </Link>
-                  <Link to={`/ledgers/${ledger.id}/settings/categories`}>
-                    <Button variant="outline" size="icon" title="카테고리 설정">
-                      <Settings2 className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       {/* 가계부 추가/수정 폼 */}

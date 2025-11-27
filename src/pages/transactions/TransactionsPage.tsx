@@ -6,6 +6,7 @@ import { Plus, ArrowUpRight, ArrowDownRight, Calendar, List, Edit, Trash2 } from
 import { startOfWeek, endOfWeek, isSameDay, format } from 'date-fns'
 import { useTransactionStore } from '@/stores/transactionStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useLedgerPermission } from '@/hooks/useLedgerPermission'
 import { formatCurrency, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { CalendarView } from '@/components/transaction/CalendarView'
@@ -24,6 +25,7 @@ export function TransactionsPage() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>()
 
   const { user } = useAuthStore()
+  const { canEdit } = useLedgerPermission(ledgerId)
 
   // 빈 배열을 상수로 정의하여 같은 참조를 유지
   const EMPTY_ARRAY: Transaction[] = []
@@ -131,17 +133,19 @@ export function TransactionsPage() {
           <h1 className="text-3xl font-bold">거래 내역</h1>
           <p className="mt-1 text-muted-foreground">수입과 지출을 기록하세요</p>
         </div>
-        <Button
-          size="lg"
-          className="w-full sm:w-auto"
-          onClick={() => {
-            setEditingTransaction(undefined)
-            setFormOpen(true)
-          }}
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          거래 추가
-        </Button>
+        {canEdit && (
+          <Button
+            size="lg"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              setEditingTransaction(undefined)
+              setFormOpen(true)
+            }}
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            거래 추가
+          </Button>
+        )}
       </div>
 
       {/* 필터 */}
@@ -304,34 +308,36 @@ export function TransactionsPage() {
                           {formatDateString(transaction.date)}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingTransaction(transaction)
-                            setFormOpen(true)
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={async () => {
-                            if (confirm('정말 삭제하시겠습니까?')) {
-                              try {
-                                await deleteTransaction(transaction.id)
-                              } catch (error) {
-                                console.error('거래 삭제 실패:', error)
-                                alert('거래 삭제에 실패했습니다.')
+                      {canEdit && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingTransaction(transaction)
+                              setFormOpen(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={async () => {
+                              if (confirm('정말 삭제하시겠습니까?')) {
+                                try {
+                                  await deleteTransaction(transaction.id)
+                                } catch (error) {
+                                  console.error('거래 삭제 실패:', error)
+                                  alert('거래 삭제에 실패했습니다.')
+                                }
                               }
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {transaction.memo && (

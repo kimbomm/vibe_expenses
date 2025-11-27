@@ -22,10 +22,12 @@ export interface Ledger {
 export interface Invitation {
   id: string
   ledgerId: string
+  ledgerName: string
   email: string
   role: MemberRole
-  token: string
   status: 'pending' | 'accepted' | 'rejected'
-  expiresAt: Date
+  invitedBy: string
+  invitedByName: string
   createdAt: Date
+  respondedAt?: Date
 }

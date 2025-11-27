@@ -1,11 +1,14 @@
+import { Link } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/authStore'
+import { useInvitationStore } from '@/stores/invitationStore'
 import { formatDateString } from '@/lib/utils'
-import { User } from 'lucide-react'
+import { User, Mail, ChevronRight } from 'lucide-react'
 
 export function SettingsPage() {
   const { user } = useAuthStore()
+  const { pendingCount } = useInvitationStore()
 
   return (
     <div className="space-y-6">
@@ -13,6 +16,33 @@ export function SettingsPage() {
         <h1 className="text-3xl font-bold">설정</h1>
         <p className="mt-1 text-muted-foreground">계정 및 앱 설정</p>
       </div>
+
+      {/* 받은 초대 */}
+      <Link to="/invitations">
+        <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+          <CardContent className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <Mail className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h4 className="font-medium">받은 초대</h4>
+                <p className="text-sm text-muted-foreground">
+                  다른 가계부에서 보낸 초대를 확인하세요
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {pendingCount > 0 && (
+                <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground">
+                  {pendingCount}
+                </span>
+              )}
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* 프로필 */}
       <Card>

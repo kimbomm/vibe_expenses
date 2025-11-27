@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowUpRight, ArrowDownRight, Wallet, Plus } from 'lucide-react'
 import { useLedgerStore } from '@/stores/ledgerStore'
 import { useTransactionStore } from '@/stores/transactionStore'
+import { useLedgerPermission } from '@/hooks/useLedgerPermission'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -15,6 +16,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 export function DashboardPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()
   const { ledgers } = useLedgerStore()
+  const { canEdit } = useLedgerPermission(ledgerId)
 
   // 빈 배열을 상수로 정의하여 같은 참조를 유지
   const EMPTY_ARRAY: Transaction[] = []
@@ -169,17 +171,19 @@ export function DashboardPage() {
             transactions={transactions}
             ledgerId={ledgerId}
           />
-          <Button
-            size="lg"
-            className="w-full sm:w-auto"
-            onClick={() => {
-              // 거래 추가는 TransactionsPage에서 처리
-              window.location.href = `/ledgers/${currentLedger.id}/transactions`
-            }}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            거래 추가
-          </Button>
+          {canEdit && (
+            <Button
+              size="lg"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                // 거래 추가는 TransactionsPage에서 처리
+                window.location.href = `/ledgers/${currentLedger.id}/transactions`
+              }}
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              거래 추가
+            </Button>
+          )}
         </div>
       </div>
 

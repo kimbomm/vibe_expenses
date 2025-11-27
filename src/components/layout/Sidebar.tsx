@@ -9,6 +9,7 @@ import {
   Settings,
   X,
   Settings2,
+  Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -48,6 +49,11 @@ const getLedgerNavigation = (ledgerId: string) => [
     name: '카테고리 설정',
     href: `/ledgers/${ledgerId}/settings/categories`,
     icon: Settings2,
+  },
+  {
+    name: '멤버 관리',
+    href: `/ledgers/${ledgerId}/members`,
+    icon: Users,
   },
 ]
 

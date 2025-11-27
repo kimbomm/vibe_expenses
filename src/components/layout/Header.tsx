@@ -1,7 +1,9 @@
-import { Menu, LogOut, User } from 'lucide-react'
+import { useEffect } from 'react'
+import { Menu, LogOut, User, Mail } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/authStore'
-import { useNavigate } from 'react-router-dom'
+import { useInvitationStore } from '@/stores/invitationStore'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -10,6 +12,14 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
+  const { pendingCount, fetchPendingCount } = useInvitationStore()
+
+  // 대기 초대 개수 조회
+  useEffect(() => {
+    if (user?.email) {
+      fetchPendingCount(user.email)
+    }
+  }, [user?.email, fetchPendingCount])
 
   const handleSignOut = async () => {
     try {
@@ -27,12 +37,30 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button variant="ghost" size="icon" onClick={onMenuClick} className="md:hidden">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="text-xl font-bold text-primary">Vibe</span>
+          <Link to="/ledgers" className="text-xl font-bold text-primary">
+            Vibe
+          </Link>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {user && (
             <>
+              {/* 초대 아이콘 */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={() => navigate('/invitations')}
+                title="받은 초대"
+              >
+                <Mail className="h-5 w-5" />
+                {pendingCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
+              </Button>
+
               <div className="hidden items-center gap-2 md:flex">
                 {user.photoURL ? (
                   <img
