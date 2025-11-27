@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowUpRight, ArrowDownRight, Wallet, Plus } from 'lucide-react'
-import { useMockDataStore } from '@/stores/mockDataStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
+import { useTransactionStore } from '@/stores/transactionStore'
 import { formatCurrency, formatPercent } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -13,7 +14,36 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 
 export function DashboardPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()
-  const { ledgers, transactions } = useMockDataStore()
+  const { ledgers } = useLedgerStore()
+
+  // 빈 배열을 상수로 정의하여 같은 참조를 유지
+  const EMPTY_ARRAY: Transaction[] = []
+
+  const transactions = useTransactionStore((state) => {
+    if (!ledgerId) return EMPTY_ARRAY
+    return state.transactions[ledgerId] || EMPTY_ARRAY
+  })
+  const fetchTransactionsByMonth = useTransactionStore((state) => state.fetchTransactionsByMonth)
+
+  // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시, 월별 조회)
+  useEffect(() => {
+    if (!ledgerId) return
+
+    // 선택한 월 조회
+    const [year, month] = selectedMonth.split('-').map(Number)
+    fetchTransactionsByMonth(ledgerId, year, month)
+
+    // 페이지 포커스 시 다시 조회
+    const handleFocus = () => {
+      fetchTransactionsByMonth(ledgerId, year, month)
+    }
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledgerId, selectedMonth])
 
   // 현재 날짜를 기본값으로 설정 (YYYY-MM 형식)
   const now = new Date()

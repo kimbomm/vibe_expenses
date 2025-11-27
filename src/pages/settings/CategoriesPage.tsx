@@ -5,17 +5,16 @@ import { useCategoryStore } from '@/stores/categoryStore'
 
 export function CategoriesPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()
-  const subscribeCategories = useCategoryStore((state) => state.subscribeCategories)
-  const unsubscribeCategories = useCategoryStore((state) => state.unsubscribeCategories)
+  const fetchCategories = useCategoryStore((state) => state.fetchCategories)
 
   if (!ledgerId) {
     return <div>가계부를 선택해주세요.</div>
   }
 
   useEffect(() => {
-    subscribeCategories(ledgerId)
-    return () => unsubscribeCategories(ledgerId)
-  }, [ledgerId, subscribeCategories, unsubscribeCategories])
+    fetchCategories(ledgerId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledgerId])
 
   return (
     <div className="space-y-6">

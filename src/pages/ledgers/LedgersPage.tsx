@@ -14,25 +14,26 @@ export function LedgersPage() {
   const [editingLedger, setEditingLedger] = useState<Ledger | undefined>()
 
   const { user } = useAuthStore()
-  const {
-    ledgers,
-    loading,
-    addLedger,
-    updateLedger,
-    deleteLedger,
-    subscribeLedgers,
-    unsubscribeLedgers,
-  } = useLedgerStore()
+  const { ledgers, loading, addLedger, updateLedger, deleteLedger, fetchLedgers } = useLedgerStore()
 
-  // 사용자 로그인 시 가계부 구독
+  // 사용자 로그인 시 가계부 조회 (페이지 마운트 시 및 포커스 시)
   useEffect(() => {
-    if (user) {
-      subscribeLedgers(user.uid)
-      return () => {
-        unsubscribeLedgers()
-      }
+    if (!user?.uid) return
+
+    // 초기 로드
+    fetchLedgers(user.uid)
+
+    // 페이지 포커스 시 다시 조회
+    const handleFocus = () => {
+      fetchLedgers(user.uid)
     }
-  }, [user, subscribeLedgers, unsubscribeLedgers])
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid])
 
   return (
     <div className="space-y-6">

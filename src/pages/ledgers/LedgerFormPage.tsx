@@ -12,18 +12,14 @@ export function LedgerFormPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuthStore()
-  const { ledgers, subscribeLedgers, unsubscribeLedgers, addLedger, updateLedger } =
-    useLedgerStore()
+  const { ledgers, fetchLedgers, addLedger, updateLedger } = useLedgerStore()
 
-  // 사용자 로그인 시 가계부 구독
+  // 사용자 로그인 시 가계부 조회
   useEffect(() => {
-    if (user) {
-      subscribeLedgers(user.uid)
-      return () => {
-        unsubscribeLedgers()
-      }
-    }
-  }, [user, subscribeLedgers, unsubscribeLedgers])
+    if (!user?.uid) return
+    fetchLedgers(user.uid)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid])
 
   // ledgerId가 있으면 수정 모드
   const ledger = ledgerId ? ledgers.find((l) => l.id === ledgerId) : undefined

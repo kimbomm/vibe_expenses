@@ -16,13 +16,11 @@ service cloud.firestore {
              ledgerData.memberIds.hasAny([getUserId()]);
     }
     
-    // 사용자가 가계부의 소유자인지 확인
     function isLedgerOwner(ledgerId) {
       return isAuthenticated() && 
              getLedger(ledgerId).data.ownerId == getUserId();
     }
     
-    // 사용자가 가계부의 멤버인지 확인
     function isLedgerMember(ledgerId) {
       return isAuthenticated() && (
         isLedgerOwner(ledgerId) ||
@@ -30,7 +28,6 @@ service cloud.firestore {
       );
     }
     
-    // 현재 요청 중인 가계부 문서에서 직접 멤버 여부 확인
     function isLedgerMemberResource() {
       return isAuthenticated() && (
         resource.data.ownerId == getUserId() ||
@@ -38,153 +35,63 @@ service cloud.firestore {
       );
     }
     
-    // Editor 또는 Owner 권한 확인
-    // Firestore 규칙 제한으로 인해 배열에서 특정 role을 찾기 어려우므로
-    // 소유자만 편집 가능하도록 설정
-    // 실제 role 기반 권한 체크는 클라이언트에서 처리하거나 Cloud Functions 사용 권장
     function canEdit(ledgerId) {
       return isAuthenticated() && isLedgerOwner(ledgerId);
     }
     
-    // 가계부 문서 가져오기 (캐싱을 위해)
     function getLedger(ledgerId) {
       return get(/databases/$(database)/documents/ledgers/$(ledgerId));
     }
     
-    // ============================================
-    // users 컬렉션
-    // ============================================
+    // users
     match /users/{userId} {
-      // 본인만 읽기/쓰기 가능
       allow read, write: if isAuthenticated() && getUserId() == userId;
     }
     
-    // ============================================
-    // ledgers 컬렉션
-    // ============================================
+    // ledgers + transactions 서브컬렉션
     match /ledgers/{ledgerId} {
-      // 읽기: 소유자 또는 멤버만 가능
       allow read: if isLedgerMemberResource();
-      
-      // 생성: 인증된 사용자만 가능 (ownerId는 요청한 사용자로 설정)
-      allow create: if isAuthenticated() && 
-                       request.resource.data.ownerId == getUserId();
-      
-      // 수정: 소유자만 가능 (멤버 관리 포함)
+      allow create: if isAuthenticated() && request.resource.data.ownerId == getUserId();
       allow update: if isAuthenticated() && isLedgerOwner(ledgerId);
+      allow delete: if isAuthenticated() && isLedgerOwner(ledgerId);
       
-      // 삭제: 소유자만 가능
+      // transactions 서브컬렉션
+      match /transactions/{monthKey}/items/{transactionId} {
+        allow read: if isAuthenticated() && isLedgerMember(ledgerId);
+        allow create: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+        allow update: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+        allow delete: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+      }
+    }
+    
+    // categories
+    match /categories/{ledgerId} {
+      allow read: if isAuthenticated() && isLedgerMember(ledgerId);
+      allow create, update: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
       allow delete: if isAuthenticated() && isLedgerOwner(ledgerId);
     }
     
-    // ============================================
-    // transactions 컬렉션
-    // ============================================
-    match /transactions/{transactionId} {
-      // 읽기: 해당 가계부의 멤버만 가능
-      allow read: if isAuthenticated() && 
-                     isLedgerMember(resource.data.ledgerId);
-      
-      // 생성: 해당 가계부의 Editor 또는 Owner만 가능
-      allow create: if isAuthenticated() && 
-                       isLedgerMember(request.resource.data.ledgerId) &&
-                       canEdit(request.resource.data.ledgerId);
-      
-      // 수정: 해당 가계부의 Editor 또는 Owner만 가능
-      allow update: if isAuthenticated() && 
-                       isLedgerMember(resource.data.ledgerId) &&
-                       canEdit(resource.data.ledgerId);
-      
-      // 삭제: 해당 가계부의 Editor 또는 Owner만 가능
-      allow delete: if isAuthenticated() && 
-                       isLedgerMember(resource.data.ledgerId) &&
-                       canEdit(resource.data.ledgerId);
-    }
-    
-    // ============================================
-    // assets 컬렉션
-    // ============================================
+    // assets
     match /assets/{assetId} {
-      // 읽기: 해당 가계부의 멤버만 가능
-      allow read: if isAuthenticated() && 
-                     isLedgerMember(resource.data.ledgerId);
-      
-      // 생성: 해당 가계부의 Editor 또는 Owner만 가능
-      allow create: if isAuthenticated() && 
-                       isLedgerMember(request.resource.data.ledgerId) &&
-                       canEdit(request.resource.data.ledgerId);
-      
-      // 수정: 해당 가계부의 Editor 또는 Owner만 가능
-      allow update: if isAuthenticated() && 
-                       isLedgerMember(resource.data.ledgerId) &&
-                       canEdit(resource.data.ledgerId);
-      
-      // 삭제: 해당 가계부의 Editor 또는 Owner만 가능
-      allow delete: if isAuthenticated() && 
-                       isLedgerMember(resource.data.ledgerId) &&
-                       canEdit(resource.data.ledgerId);
+      allow read: if isAuthenticated() && isLedgerMember(resource.data.ledgerId);
+      allow create: if isAuthenticated() && isLedgerMember(request.resource.data.ledgerId) && canEdit(request.resource.data.ledgerId);
+      allow update: if isAuthenticated() && isLedgerMember(resource.data.ledgerId) && canEdit(resource.data.ledgerId);
+      allow delete: if isAuthenticated() && isLedgerMember(resource.data.ledgerId) && canEdit(resource.data.ledgerId);
     }
     
-    // ============================================
-    // assetLogs 컬렉션
-    // ============================================
+    // assetLogs
     match /assetLogs/{logId} {
-      // 읽기: 해당 가계부의 멤버만 가능
-      allow read: if isAuthenticated() && 
-                     isLedgerMember(resource.data.ledgerId);
-      
-      // 생성: 시스템에서만 생성 (클라이언트에서 직접 생성하지 않음)
-      // 필요시 Cloud Functions에서 생성하거나, 클라이언트에서 생성 시 해당 가계부의 Editor/Owner만 가능
-      allow create: if isAuthenticated() && 
-                       isLedgerMember(request.resource.data.ledgerId) &&
-                       canEdit(request.resource.data.ledgerId);
-      
-      // 수정/삭제: 불가 (로그는 변경 불가)
+      allow read: if isAuthenticated() && isLedgerMember(resource.data.ledgerId);
+      allow create: if isAuthenticated() && isLedgerMember(request.resource.data.ledgerId) && canEdit(request.resource.data.ledgerId);
       allow update, delete: if false;
     }
     
-    // ============================================
-    // categories 컬렉션
-    // ============================================
-    match /categories/{ledgerId} {
-      // 읽기: 해당 가계부의 멤버만 가능
-      allow read: if isAuthenticated() && isLedgerMember(ledgerId);
-      
-      // 생성/수정: 해당 가계부의 Editor 또는 Owner만 가능
-      allow create, update: if isAuthenticated() && 
-                               isLedgerMember(ledgerId) &&
-                               canEdit(ledgerId);
-      
-      // 삭제: 소유자만 가능
-      allow delete: if isAuthenticated() && isLedgerOwner(ledgerId);
-    }
-    
-    // ============================================
-    // invitations 컬렉션
-    // ============================================
+    // invitations
     match /invitations/{invitationId} {
-      // 읽기: 
-      // - 가계부 소유자만 모든 초대 조회 가능
-      // - 본인 이메일이면 본인 초대만 조회 가능
-      allow read: if isAuthenticated() && (
-        isLedgerOwner(resource.data.ledgerId) ||
-        (resource.data.email == request.auth.token.email)
-      );
-      
-      // 생성: 가계부 소유자만 가능
-      allow create: if isAuthenticated() && 
-                       isLedgerOwner(request.resource.data.ledgerId);
-      
-      // 수정: 가계부 소유자 또는 본인 이메일이면 수정 가능 (초대 수락/거절)
-      allow update: if isAuthenticated() && (
-        isLedgerOwner(resource.data.ledgerId) ||
-        (resource.data.email == request.auth.token.email)
-      );
-      
-      // 삭제: 가계부 소유자만 가능
-      allow delete: if isAuthenticated() && 
-                       isLedgerOwner(resource.data.ledgerId);
+      allow read: if isAuthenticated() && (isLedgerOwner(resource.data.ledgerId) || resource.data.email == request.auth.token.email);
+      allow create: if isAuthenticated() && isLedgerOwner(request.resource.data.ledgerId);
+      allow update: if isAuthenticated() && (isLedgerOwner(resource.data.ledgerId) || resource.data.email == request.auth.token.email);
+      allow delete: if isAuthenticated() && isLedgerOwner(resource.data.ledgerId);
     }
   }
 }
-

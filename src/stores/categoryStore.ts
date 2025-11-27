@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { doc, onSnapshot, type Unsubscribe } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import type { LedgerCategories, CategoryType, CategoryMap } from '@/types/category'
 import {
@@ -14,10 +14,8 @@ interface CategoryState {
   categories: Record<string, LedgerCategories>
   loading: Record<string, boolean>
   error: string | null
-  unsubscribes: Record<string, Unsubscribe | null>
-  subscriberCounts: Record<string, number>
-  subscribeCategories: (ledgerId: string) => Promise<void>
-  unsubscribeCategories: (ledgerId: string) => void
+  lastFetched: Record<string, number> // ledgerId -> timestamp
+  fetchCategories: (ledgerId: string) => Promise<void>
   addCategory1: (ledgerId: string, type: CategoryType, name: string) => Promise<void>
   updateCategory1: (
     ledgerId: string,
@@ -68,21 +66,14 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
   categories: {},
   loading: {},
   error: null,
-  unsubscribes: {},
-  subscriberCounts: {},
+  lastFetched: {},
 
-  subscribeCategories: async (ledgerId: string) => {
+  fetchCategories: async (ledgerId: string) => {
     if (!ledgerId) return
 
-    const { unsubscribes, subscriberCounts } = get()
-    const currentCount = subscriberCounts[ledgerId] || 0
-
-    if (currentCount > 0) {
-      set({
-        subscriberCounts: { ...subscriberCounts, [ledgerId]: currentCount + 1 },
-      })
-      return
-    }
+    // 이미 로딩 중이면 스킵
+    const { loading } = get()
+    if (loading[ledgerId]) return
 
     set((state) => ({
       loading: { ...state.loading, [ledgerId]: true },
@@ -93,62 +84,32 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
       await ensureDefaultCategories(ledgerId)
 
       const docRef = doc(db, CATEGORIES_COLLECTION, ledgerId)
-      const unsubscribe = onSnapshot(
-        docRef,
-        (snapshot) => {
-          if (!snapshot.exists()) {
-            return
-          }
+      const snapshot = await getDoc(docRef)
 
-          const categories = parseCategoriesDoc(snapshot.data())
-          set((state) => ({
-            categories: { ...state.categories, [ledgerId]: categories },
-            loading: { ...state.loading, [ledgerId]: false },
-          }))
-        },
-        (error) => {
-          console.error('카테고리 구독 오류:', error)
-          set((state) => ({
-            loading: { ...state.loading, [ledgerId]: false },
-            error: error.message,
-          }))
-        }
-      )
-
-      set((state) => ({
-        unsubscribes: { ...state.unsubscribes, [ledgerId]: unsubscribe },
-        subscriberCounts: { ...state.subscriberCounts, [ledgerId]: 1 },
-      }))
+      if (snapshot.exists()) {
+        const categories = parseCategoriesDoc(snapshot.data())
+        set((state) => ({
+          categories: { ...state.categories, [ledgerId]: categories },
+          loading: { ...state.loading, [ledgerId]: false },
+          lastFetched: { ...state.lastFetched, [ledgerId]: Date.now() },
+          error: null,
+        }))
+      } else {
+        // 문서가 없으면 기본 카테고리 사용
+        const defaultCategories = getDefaultCategories()
+        set((state) => ({
+          categories: { ...state.categories, [ledgerId]: defaultCategories },
+          loading: { ...state.loading, [ledgerId]: false },
+          lastFetched: { ...state.lastFetched, [ledgerId]: Date.now() },
+          error: null,
+        }))
+      }
     } catch (error) {
-      console.error('카테고리 구독 실패:', error)
+      console.error('카테고리 조회 실패:', error)
       set((state) => ({
         loading: { ...state.loading, [ledgerId]: false },
-        error: error instanceof Error ? error.message : '카테고리 구독 실패',
+        error: error instanceof Error ? error.message : '카테고리 조회 실패',
       }))
-    }
-  },
-
-  unsubscribeCategories: (ledgerId: string) => {
-    const { unsubscribes, subscriberCounts } = get()
-    const currentCount = subscriberCounts[ledgerId] || 0
-
-    if (currentCount > 1) {
-      set({
-        subscriberCounts: { ...subscriberCounts, [ledgerId]: currentCount - 1 },
-      })
-      return
-    }
-
-    const unsubscribe = unsubscribes[ledgerId]
-    if (unsubscribe) {
-      unsubscribe()
-      set((state) => {
-        const nextUnsubscribes = { ...state.unsubscribes }
-        delete nextUnsubscribes[ledgerId]
-        const nextCounts = { ...state.subscriberCounts }
-        delete nextCounts[ledgerId]
-        return { unsubscribes: nextUnsubscribes, subscriberCounts: nextCounts }
-      })
     }
   },
 

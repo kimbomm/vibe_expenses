@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Plus, ArrowUpRight, ArrowDownRight, Calendar, List, Edit, Trash2 } from 'lucide-react'
 import { startOfWeek, endOfWeek, isSameDay, format } from 'date-fns'
-import { useMockDataStore } from '@/stores/mockDataStore'
+import { useTransactionStore } from '@/stores/transactionStore'
+import { useAuthStore } from '@/stores/authStore'
 import { formatCurrency, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { CalendarView } from '@/components/transaction/CalendarView'
@@ -22,16 +23,45 @@ export function TransactionsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>()
 
-  const {
-    transactions: storeTransactions,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
-  } = useMockDataStore()
+  const { user } = useAuthStore()
+
+  // 빈 배열을 상수로 정의하여 같은 참조를 유지
+  const EMPTY_ARRAY: Transaction[] = []
+
+  const storeTransactions = useTransactionStore((state) => {
+    if (!ledgerId) return EMPTY_ARRAY
+    return state.transactions[ledgerId] || EMPTY_ARRAY
+  })
+  const fetchTransactionsByMonth = useTransactionStore((state) => state.fetchTransactionsByMonth)
+  const addTransaction = useTransactionStore((state) => state.addTransaction)
+  const updateTransaction = useTransactionStore((state) => state.updateTransaction)
+  const deleteTransaction = useTransactionStore((state) => state.deleteTransaction)
+
+  // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시, 월별 조회)
+  useEffect(() => {
+    if (!ledgerId) return
+
+    // 현재 월 조회
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth() + 1
+    fetchTransactionsByMonth(ledgerId, year, month)
+
+    // 페이지 포커스 시 다시 조회
+    const handleFocus = () => {
+      fetchTransactionsByMonth(ledgerId, year, month)
+    }
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      window.removeEventListener('focus', handleFocus)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledgerId, currentMonth])
 
   // 필터링된 거래 목록 (캘린더용)
   const allFilteredTransactions = useMemo(() => {
-    let filtered = storeTransactions.filter((t) => t.ledgerId === ledgerId)
+    if (!ledgerId) return []
+    let filtered = storeTransactions
 
     // 타입 필터
     if (typeFilter !== 'all') {
@@ -288,9 +318,14 @@ export function TransactionsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => {
+                          onClick={async () => {
                             if (confirm('정말 삭제하시겠습니까?')) {
-                              deleteTransaction(transaction.id)
+                              try {
+                                await deleteTransaction(transaction.id)
+                              } catch (error) {
+                                console.error('거래 삭제 실패:', error)
+                                alert('거래 삭제에 실패했습니다.')
+                              }
                             }
                           }}
                         >
@@ -318,11 +353,20 @@ export function TransactionsPage() {
           onOpenChange={setFormOpen}
           ledgerId={ledgerId}
           transaction={editingTransaction}
-          onSubmit={(data) => {
-            if (editingTransaction) {
-              updateTransaction(editingTransaction.id, data)
-            } else {
-              addTransaction(data)
+          onSubmit={async (data) => {
+            if (!user) return
+
+            try {
+              if (editingTransaction) {
+                await updateTransaction(editingTransaction.id, data, user.uid)
+              } else {
+                await addTransaction(data, user.uid)
+              }
+              setFormOpen(false)
+              setEditingTransaction(undefined)
+            } catch (error) {
+              console.error('거래 저장 실패:', error)
+              alert('거래 저장에 실패했습니다.')
             }
           }}
         />

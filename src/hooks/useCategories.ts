@@ -4,20 +4,14 @@ import { useCategoryStore } from '@/stores/categoryStore'
 import { getDefaultCategories } from '@/lib/firebase/categories'
 
 export function useCategories(ledgerId: string) {
-  const { ledgerCategories, subscribeCategories, unsubscribeCategories } = useCategoryStore(
-    (state) => ({
-      ledgerCategories: state.categories[ledgerId],
-      subscribeCategories: state.subscribeCategories,
-      unsubscribeCategories: state.unsubscribeCategories,
-    }),
-    shallow
-  )
+  const ledgerCategories = useCategoryStore((state) => state.categories[ledgerId])
+  const fetchCategories = useCategoryStore((state) => state.fetchCategories)
 
   useEffect(() => {
     if (!ledgerId) return
-    subscribeCategories(ledgerId)
-    return () => unsubscribeCategories(ledgerId)
-  }, [ledgerId, subscribeCategories, unsubscribeCategories])
+    fetchCategories(ledgerId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ledgerId])
 
   const categories = useMemo(() => {
     return ledgerCategories || getDefaultCategories()
