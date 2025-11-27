@@ -2,7 +2,14 @@
  * 거래 데이터 암호화/복호화 헬퍼
  */
 
-import { encrypt, decrypt, encryptNumber, decryptNumber, isEncrypted } from './encryption'
+import {
+  encrypt,
+  decrypt,
+  encryptNumber,
+  decryptNumber,
+  isEncrypted,
+  preloadKey,
+} from './encryption'
 import type { Transaction } from '@/types'
 
 // 암호화할 거래 필드
@@ -53,7 +60,7 @@ export async function decryptTransaction(
 }
 
 /**
- * 거래 목록 복호화
+ * 거래 목록 복호화 (배치 최적화)
  */
 export async function decryptTransactions(
   transactions: Transaction[],
@@ -61,6 +68,10 @@ export async function decryptTransactions(
 ): Promise<Transaction[]> {
   if (!encryptionKey || transactions.length === 0) return transactions
 
+  // 키를 미리 로드하여 캐싱 (첫 번째 복호화 딜레이 방지)
+  await preloadKey(encryptionKey)
+
+  // 병렬 복호화
   return Promise.all(transactions.map((t) => decryptTransaction(t, encryptionKey)))
 }
 

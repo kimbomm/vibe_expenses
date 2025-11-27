@@ -48,26 +48,13 @@ export function AssetsPage() {
   const updateAsset = useAssetStore((state) => state.updateAsset)
   const deleteAsset = useAssetStore((state) => state.deleteAsset)
 
-  // 가계부별 자산 조회 (페이지 마운트 시 및 포커스 시)
+  // 가계부별 자산 조회 (페이지 마운트 시)
   useEffect(() => {
     if (!ledgerId) return
 
-    // 초기 로드
     fetchAssets(ledgerId)
     fetchAssetLogs(ledgerId)
-
-    // 페이지 포커스 시 다시 조회
-    const handleFocus = () => {
-      fetchAssets(ledgerId)
-      fetchAssetLogs(ledgerId)
-    }
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledgerId])
+  }, [ledgerId, fetchAssets, fetchAssetLogs])
 
   const assets = storeAssets.filter((a) => a.isActive)
 

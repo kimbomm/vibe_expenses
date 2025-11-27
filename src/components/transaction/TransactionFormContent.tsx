@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useCategories } from '@/hooks/useCategories'
 import type { Transaction } from '@/types'
-import { formatDateString } from '@/lib/utils'
+import { formatDateString, formatNumber } from '@/lib/utils'
 
 const transactionSchema = z.object({
   type: z.enum(['income', 'expense']),
@@ -74,6 +74,19 @@ export function TransactionFormContent({
   const category1 = watch('category1')
   const paymentMethod1 = watch('paymentMethod1')
 
+  // 금액 표시용 상태 (포맷팅된 문자열)
+  const [amountDisplay, setAmountDisplay] = useState<string>(
+    transaction?.amount ? formatNumber(transaction.amount) : ''
+  )
+
+  // 금액 입력 핸들러
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9]/g, '') // 숫자만 추출
+    const numValue = value ? parseInt(value, 10) : 0
+    setValue('amount', numValue)
+    setAmountDisplay(numValue > 0 ? formatNumber(numValue) : '')
+  }
+
   useEffect(() => {
     if (transaction) {
       reset({
@@ -87,6 +100,7 @@ export function TransactionFormContent({
         description: transaction.description,
         memo: transaction.memo || '',
       })
+      setAmountDisplay(transaction.amount > 0 ? formatNumber(transaction.amount) : '')
     } else {
       reset({
         type: 'expense',
@@ -99,6 +113,7 @@ export function TransactionFormContent({
         description: '',
         memo: '',
       })
+      setAmountDisplay('')
     }
   }, [transaction, reset])
 
@@ -167,11 +182,14 @@ export function TransactionFormContent({
           <Label htmlFor="amount">금액 *</Label>
           <Input
             id="amount"
-            type="number"
-            {...register('amount', { valueAsNumber: true })}
+            type="text"
+            inputMode="numeric"
+            value={amountDisplay}
+            onChange={handleAmountChange}
             placeholder="금액을 입력하세요"
             className="text-right"
           />
+          <input type="hidden" {...register('amount', { valueAsNumber: true })} />
           {errors.amount && <p className="text-sm text-red-500">{errors.amount.message}</p>}
         </div>
         <div className="space-y-2">

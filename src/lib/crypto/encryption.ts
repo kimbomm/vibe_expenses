@@ -41,14 +41,30 @@ export async function generateEncryptionKey(): Promise<string> {
 }
 
 /**
- * Base64 키 문자열을 CryptoKey 객체로 변환
+ * 키 캐시 (키 import 비용 절감)
+ */
+const keyCache = new Map<string, CryptoKey>()
+
+/**
+ * Base64 키 문자열을 CryptoKey 객체로 변환 (캐싱)
  */
 async function importKey(keyBase64: string): Promise<CryptoKey> {
+  // 캐시에서 먼저 확인
+  const cached = keyCache.get(keyBase64)
+  if (cached) return cached
+
   const keyBuffer = base64ToArrayBuffer(keyBase64)
-  return crypto.subtle.importKey('raw', keyBuffer, { name: 'AES-GCM', length: 256 }, false, [
-    'encrypt',
-    'decrypt',
-  ])
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyBuffer,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+
+  // 캐시에 저장
+  keyCache.set(keyBase64, key)
+  return key
 }
 
 /**
@@ -136,15 +152,21 @@ export async function decryptNumber(cipherText: string, keyBase64: string): Prom
 }
 
 /**
- * 암호화된 데이터인지 확인 (Base64 + 최소 길이)
+ * 암호화된 데이터인지 확인 (Base64 패턴 + 최소 길이)
+ * 성능을 위해 정규식으로 빠르게 체크
  */
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+=*$/
+
 export function isEncrypted(value: string): boolean {
+  // 최소 길이: IV(12 bytes) + 최소 데이터 → Base64 인코딩 시 약 20자 이상
   if (!value || value.length < 20) return false
-  try {
-    // Base64 디코딩이 가능하고, 최소 IV(12) + 데이터 길이 확인
-    const decoded = atob(value)
-    return decoded.length >= 13 // 최소 IV(12) + 1 byte 데이터
-  } catch {
-    return false
-  }
+  // Base64 패턴 매칭 (atob보다 빠름)
+  return BASE64_PATTERN.test(value)
+}
+
+/**
+ * 키를 미리 로드하여 캐시에 저장 (배치 작업 전 호출)
+ */
+export async function preloadKey(keyBase64: string): Promise<void> {
+  await importKey(keyBase64)
 }

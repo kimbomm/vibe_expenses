@@ -51,25 +51,13 @@ export function StatisticsPage() {
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth)
 
-  // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시, 월별 조회)
+  // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
   useEffect(() => {
     if (!ledgerId) return
 
-    // 선택한 월 조회
     const [year, month] = selectedMonth.split('-').map(Number)
     fetchTransactionsByMonth(ledgerId, year, month)
-
-    // 페이지 포커스 시 다시 조회
-    const handleFocus = () => {
-      fetchTransactionsByMonth(ledgerId, year, month)
-    }
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledgerId, selectedMonth])
+  }, [ledgerId, selectedMonth, fetchTransactionsByMonth])
 
   if (!ledgerId) {
     return <div>가계부를 선택해주세요.</div>

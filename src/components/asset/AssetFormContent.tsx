@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useCategories } from '@/hooks/useCategories'
+import { formatNumber } from '@/lib/utils'
 import type { Asset } from '@/types'
 
 const assetSchema = z.object({
@@ -57,8 +58,17 @@ export function AssetFormContent({
   })
 
   const category1 = watch('category1')
-  const balance = watch('balance')
-  const [balanceDisplay, setBalanceDisplay] = useState<string>('')
+  const [balanceDisplay, setBalanceDisplay] = useState<string>(
+    asset?.balance ? formatNumber(asset.balance) : ''
+  )
+
+  // 잔액 입력 핸들러 (실시간 포맷팅)
+  const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^0-9-]/g, '') // 숫자와 마이너스만 추출
+    const numValue = value ? parseInt(value, 10) : 0
+    setValue('balance', numValue)
+    setBalanceDisplay(value ? formatNumber(numValue) : '')
+  }
 
   useEffect(() => {
     if (asset) {
@@ -69,7 +79,7 @@ export function AssetFormContent({
         balance: asset.balance,
         memo: asset.memo || '',
       })
-      setBalanceDisplay(asset.balance.toLocaleString('ko-KR'))
+      setBalanceDisplay(formatNumber(asset.balance))
     } else {
       reset({
         name: '',
@@ -78,20 +88,13 @@ export function AssetFormContent({
         balance: 0,
         memo: '',
       })
-      setBalanceDisplay('0')
+      setBalanceDisplay('')
     }
   }, [asset, reset])
 
   useEffect(() => {
     setValue('category2', '')
   }, [category1, setValue])
-
-  // 잔액 포맷팅 (콤마 추가)
-  useEffect(() => {
-    if (balance !== undefined && balance !== null) {
-      setBalanceDisplay(balance.toLocaleString('ko-KR'))
-    }
-  }, [balance])
 
   const onFormSubmit = (data: AssetFormData) => {
     onSubmit({
@@ -105,27 +108,6 @@ export function AssetFormContent({
     })
     onCancel()
     reset()
-  }
-
-  const handleBalanceBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/,/g, '')
-    const numValue = Number(value) || 0
-    setValue('balance', numValue)
-    setBalanceDisplay(numValue.toLocaleString('ko-KR'))
-  }
-
-  const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/,/g, '')
-    if (value === '' || /^\d+$/.test(value)) {
-      setBalanceDisplay(value)
-      const numValue = Number(value) || 0
-      setValue('balance', numValue, { shouldValidate: true })
-    }
-  }
-
-  const handleBalanceFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/,/g, '')
-    setBalanceDisplay(value)
   }
 
   const category1List = getAssetCategory1List()
@@ -174,13 +156,13 @@ export function AssetFormContent({
         <Input
           id="balance"
           type="text"
+          inputMode="numeric"
           value={balanceDisplay}
           onChange={handleBalanceChange}
-          onBlur={handleBalanceBlur}
-          onFocus={handleBalanceFocus}
-          placeholder="0"
+          placeholder="금액을 입력하세요"
           className="text-right"
         />
+        <input type="hidden" {...register('balance', { valueAsNumber: true })} />
         {errors.balance && <p className="text-sm text-red-500">{errors.balance.message}</p>}
       </div>
 

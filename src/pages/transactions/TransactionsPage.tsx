@@ -39,26 +39,14 @@ export function TransactionsPage() {
   const updateTransaction = useTransactionStore((state) => state.updateTransaction)
   const deleteTransaction = useTransactionStore((state) => state.deleteTransaction)
 
-  // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시, 월별 조회)
+  // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
   useEffect(() => {
     if (!ledgerId) return
 
-    // 현재 월 조회
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth() + 1
     fetchTransactionsByMonth(ledgerId, year, month)
-
-    // 페이지 포커스 시 다시 조회
-    const handleFocus = () => {
-      fetchTransactionsByMonth(ledgerId, year, month)
-    }
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledgerId, currentMonth])
+  }, [ledgerId, currentMonth, fetchTransactionsByMonth])
 
   // 필터링된 거래 목록 (캘린더용)
   const allFilteredTransactions = useMemo(() => {

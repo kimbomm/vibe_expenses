@@ -12,6 +12,7 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { MonthPicker } from '@/components/dashboard/MonthPicker'
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import type { Transaction } from '@/types'
 
 export function DashboardPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()
@@ -32,25 +33,13 @@ export function DashboardPage() {
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth)
 
-  // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시, 월별 조회)
+  // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
   useEffect(() => {
     if (!ledgerId) return
 
-    // 선택한 월 조회
     const [year, month] = selectedMonth.split('-').map(Number)
     fetchTransactionsByMonth(ledgerId, year, month)
-
-    // 페이지 포커스 시 다시 조회
-    const handleFocus = () => {
-      fetchTransactionsByMonth(ledgerId, year, month)
-    }
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledgerId, selectedMonth])
+  }, [ledgerId, selectedMonth, fetchTransactionsByMonth])
 
   // ledgerId가 없으면 첫 번째 가계부로 리다이렉트
   if (!ledgerId) {

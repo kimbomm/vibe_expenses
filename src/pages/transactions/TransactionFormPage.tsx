@@ -30,36 +30,23 @@ export function TransactionFormPage() {
   // transactionId가 있으면 수정 모드 - useEffect보다 먼저 선언해야 함
   const transaction = transactionId ? transactions.find((t) => t.id === transactionId) : undefined
 
-  // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시)
+  // 가계부별 거래내역 조회 (페이지 마운트 시)
   // 수정 모드인 경우 해당 거래의 월을 조회, 아니면 현재 월 조회
   useEffect(() => {
     if (!ledgerId) return
 
     let year: number, month: number
     if (transactionId && transaction) {
-      // 수정 모드: 해당 거래의 월
       year = transaction.date.getFullYear()
       month = transaction.date.getMonth() + 1
     } else {
-      // 추가 모드: 현재 월
       const now = new Date()
       year = now.getFullYear()
       month = now.getMonth() + 1
     }
 
     fetchTransactionsByMonth(ledgerId, year, month)
-
-    // 페이지 포커스 시 다시 조회
-    const handleFocus = () => {
-      fetchTransactionsByMonth(ledgerId, year, month)
-    }
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      window.removeEventListener('focus', handleFocus)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledgerId, transactionId, transaction])
+  }, [ledgerId, transactionId, transaction, fetchTransactionsByMonth])
 
   if (!ledgerId) {
     return <div>가계부를 선택해주세요.</div>

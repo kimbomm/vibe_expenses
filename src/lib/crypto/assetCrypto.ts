@@ -2,7 +2,14 @@
  * 자산 데이터 암호화/복호화 헬퍼
  */
 
-import { encrypt, decrypt, encryptNumber, decryptNumber, isEncrypted } from './encryption'
+import {
+  encrypt,
+  decrypt,
+  encryptNumber,
+  decryptNumber,
+  isEncrypted,
+  preloadKey,
+} from './encryption'
 import type { Asset, AssetLog } from '@/types'
 
 /**
@@ -43,10 +50,13 @@ export async function decryptAsset(asset: Asset, encryptionKey: string): Promise
 }
 
 /**
- * 자산 목록 복호화
+ * 자산 목록 복호화 (배치 최적화)
  */
 export async function decryptAssets(assets: Asset[], encryptionKey: string): Promise<Asset[]> {
   if (!encryptionKey || assets.length === 0) return assets
+
+  // 키를 미리 로드하여 캐싱
+  await preloadKey(encryptionKey)
 
   return Promise.all(assets.map((a) => decryptAsset(a, encryptionKey)))
 }
@@ -129,13 +139,16 @@ export async function decryptAssetLog(log: AssetLog, encryptionKey: string): Pro
 }
 
 /**
- * 자산 로그 목록 복호화
+ * 자산 로그 목록 복호화 (배치 최적화)
  */
 export async function decryptAssetLogs(
   logs: AssetLog[],
   encryptionKey: string
 ): Promise<AssetLog[]> {
   if (!encryptionKey || logs.length === 0) return logs
+
+  // 키를 미리 로드하여 캐싱
+  await preloadKey(encryptionKey)
 
   return Promise.all(logs.map((l) => decryptAssetLog(l, encryptionKey)))
 }
