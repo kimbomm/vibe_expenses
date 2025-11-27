@@ -27,6 +27,9 @@ export function TransactionFormPage() {
   const addTransaction = useTransactionStore((state) => state.addTransaction)
   const updateTransaction = useTransactionStore((state) => state.updateTransaction)
 
+  // transactionId가 있으면 수정 모드 - useEffect보다 먼저 선언해야 함
+  const transaction = transactionId ? transactions.find((t) => t.id === transactionId) : undefined
+
   // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시)
   // 수정 모드인 경우 해당 거래의 월을 조회, 아니면 현재 월 조회
   useEffect(() => {
@@ -57,9 +60,6 @@ export function TransactionFormPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ledgerId, transactionId, transaction])
-
-  // transactionId가 있으면 수정 모드
-  const transaction = transactionId ? transactions.find((t) => t.id === transactionId) : undefined
 
   if (!ledgerId) {
     return <div>가계부를 선택해주세요.</div>
