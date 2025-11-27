@@ -52,18 +52,19 @@ export function StatisticsPage() {
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth)
 
   // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
+  const currentLedger = ledgerId ? (ledgers.find((l) => l.id === ledgerId) ?? null) : null
+
   useEffect(() => {
-    if (!ledgerId) return
+    if (!ledgerId || !currentLedger?.encryptionKey) return
 
     const [year, month] = selectedMonth.split('-').map(Number)
     fetchTransactionsByMonth(ledgerId, year, month)
-  }, [ledgerId, selectedMonth, fetchTransactionsByMonth])
+  }, [ledgerId, selectedMonth, fetchTransactionsByMonth, currentLedger?.encryptionKey])
 
   if (!ledgerId) {
     return <div>가계부를 선택해주세요.</div>
   }
 
-  const currentLedger = ledgers.find((l) => l.id === ledgerId)
   if (!currentLedger) {
     return <div>가계부를 찾을 수 없습니다.</div>
   }

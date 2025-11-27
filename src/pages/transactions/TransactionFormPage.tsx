@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { TransactionFormContent } from '@/components/transaction/TransactionFormContent'
 import { useTransactionStore } from '@/stores/transactionStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
 import { useAuthStore } from '@/stores/authStore'
 import type { Transaction } from '@/types'
 
@@ -26,6 +27,9 @@ export function TransactionFormPage() {
   const fetchTransactionsByMonth = useTransactionStore((state) => state.fetchTransactionsByMonth)
   const addTransaction = useTransactionStore((state) => state.addTransaction)
   const updateTransaction = useTransactionStore((state) => state.updateTransaction)
+  const currentLedger = useLedgerStore((state) =>
+    ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
+  )
 
   // transactionId가 있으면 수정 모드 - useEffect보다 먼저 선언해야 함
   const transaction = transactionId ? transactions.find((t) => t.id === transactionId) : undefined
@@ -33,7 +37,7 @@ export function TransactionFormPage() {
   // 가계부별 거래내역 조회 (페이지 마운트 시)
   // 수정 모드인 경우 해당 거래의 월을 조회, 아니면 현재 월 조회
   useEffect(() => {
-    if (!ledgerId) return
+    if (!ledgerId || !currentLedger?.encryptionKey) return
 
     let year: number, month: number
     if (transactionId && transaction) {
@@ -46,7 +50,7 @@ export function TransactionFormPage() {
     }
 
     fetchTransactionsByMonth(ledgerId, year, month)
-  }, [ledgerId, transactionId, transaction, fetchTransactionsByMonth])
+  }, [ledgerId, transactionId, transaction, fetchTransactionsByMonth, currentLedger?.encryptionKey])
 
   if (!ledgerId) {
     return <div>가계부를 선택해주세요.</div>

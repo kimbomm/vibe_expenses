@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Menu, LogOut, User, Mail } from 'lucide-react'
+import { Menu, LogOut, Mail } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/authStore'

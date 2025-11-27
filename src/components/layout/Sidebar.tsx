@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -67,7 +67,6 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
   const params = useParams<{ ledgerId?: string }>()
   const { user } = useAuthStore()
   const { ledgers, fetchLedgers } = useLedgerStore()
-  const [lastLedgerId, setLastLedgerId] = useState<string | null>(null)
 
   // 사용자 로그인 시 가계부 조회 (페이지 마운트 시)
   useEffect(() => {
@@ -80,23 +79,16 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
 
   // URL에서 ledgerId가 없어도 경로에서 추출 시도
   const ledgerIdFromPath = location.pathname.match(/\/ledgers\/([^/]+)/)?.[1]
-  const effectiveLedgerId = currentLedgerId || ledgerIdFromPath || lastLedgerId
+  const fallbackLedgerId =
+    typeof window !== 'undefined' ? localStorage.getItem('lastLedgerId') : null
+  const effectiveLedgerId = currentLedgerId || ledgerIdFromPath || fallbackLedgerId
 
   // 현재 가계부 ID가 있으면 저장
   useEffect(() => {
     if (effectiveLedgerId) {
-      setLastLedgerId(effectiveLedgerId)
       localStorage.setItem('lastLedgerId', effectiveLedgerId)
     }
   }, [effectiveLedgerId])
-
-  // 초기 로드 시 localStorage에서 마지막 가계부 ID 복원
-  useEffect(() => {
-    const savedLedgerId = localStorage.getItem('lastLedgerId')
-    if (savedLedgerId && !effectiveLedgerId) {
-      setLastLedgerId(savedLedgerId)
-    }
-  }, [])
 
   const currentLedger = effectiveLedgerId ? ledgers.find((l) => l.id === effectiveLedgerId) : null
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,24 +33,25 @@ export function DashboardPage() {
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth)
 
+  const currentLedger = ledgerId ? (ledgers.find((l) => l.id === ledgerId) ?? null) : null
+
   // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
   useEffect(() => {
-    if (!ledgerId) return
+    if (!ledgerId || !currentLedger?.encryptionKey) return
 
     const [year, month] = selectedMonth.split('-').map(Number)
     fetchTransactionsByMonth(ledgerId, year, month)
-  }, [ledgerId, selectedMonth, fetchTransactionsByMonth])
+  }, [ledgerId, selectedMonth, fetchTransactionsByMonth, currentLedger?.encryptionKey])
 
-  // ledgerId가 없으면 첫 번째 가계부로 리다이렉트
+  let redirectElement: ReactElement | null = null
   if (!ledgerId) {
     const firstLedger = ledgers[0]
-    if (firstLedger) {
-      return <Navigate to={`/ledgers/${firstLedger.id}/dashboard`} replace />
-    }
-    return <Navigate to="/ledgers" replace />
+    redirectElement = firstLedger ? (
+      <Navigate to={`/ledgers/${firstLedger.id}/dashboard`} replace />
+    ) : (
+      <Navigate to="/ledgers" replace />
+    )
   }
-
-  const currentLedger = ledgers.find((l) => l.id === ledgerId)
 
   // 선택한 년도/월 파싱
   const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number)
@@ -136,6 +137,10 @@ export function DashboardPage() {
     '#FFC658',
     '#FF7C7C',
   ]
+
+  if (redirectElement) {
+    return redirectElement
+  }
 
   if (!currentLedger) {
     return <div>가계부를 먼저 생성해주세요.</div>

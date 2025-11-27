@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { useLedgerStore } from '@/stores/ledgerStore'
 import { useAuthStore } from '@/stores/authStore'
 import type { MemberRole } from '@/types'
@@ -16,44 +15,42 @@ export function useLedgerPermission(ledgerId: string | undefined): LedgerPermiss
   const { user } = useAuthStore()
   const { ledgers } = useLedgerStore()
 
-  return useMemo(() => {
-    if (!ledgerId || !user?.uid) {
-      return {
-        role: null,
-        isOwner: false,
-        isEditor: false,
-        isViewer: false,
-        canEdit: false,
-        canView: false,
-      }
-    }
-
-    const ledger = ledgers.find((l) => l.id === ledgerId)
-    if (!ledger) {
-      return {
-        role: null,
-        isOwner: false,
-        isEditor: false,
-        isViewer: false,
-        canEdit: false,
-        canView: false,
-      }
-    }
-
-    const member = ledger.members.find((m) => m.userId === user.uid)
-    const role = member?.role || null
-
-    const isOwner = role === 'owner'
-    const isEditor = role === 'editor'
-    const isViewer = role === 'viewer'
-
+  if (!ledgerId || !user?.uid) {
     return {
-      role,
-      isOwner,
-      isEditor,
-      isViewer,
-      canEdit: isOwner || isEditor,
-      canView: isOwner || isEditor || isViewer,
+      role: null,
+      isOwner: false,
+      isEditor: false,
+      isViewer: false,
+      canEdit: false,
+      canView: false,
     }
-  }, [ledgerId, user?.uid, ledgers])
+  }
+
+  const ledger = ledgers.find((l) => l.id === ledgerId)
+  if (!ledger) {
+    return {
+      role: null,
+      isOwner: false,
+      isEditor: false,
+      isViewer: false,
+      canEdit: false,
+      canView: false,
+    }
+  }
+
+  const member = ledger.members.find((m) => m.userId === user.uid)
+  const role = member?.role || null
+
+  const isOwner = role === 'owner'
+  const isEditor = role === 'editor'
+  const isViewer = role === 'viewer'
+
+  return {
+    role,
+    isOwner,
+    isEditor,
+    isViewer,
+    canEdit: isOwner || isEditor,
+    canView: isOwner || isEditor || isViewer,
+  }
 }

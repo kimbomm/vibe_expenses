@@ -1,5 +1,4 @@
 import { useEffect, useMemo } from 'react'
-import { shallow } from 'zustand/shallow'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { getDefaultCategories } from '@/lib/firebase/categories'
 

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useAssetStore } from '@/stores/assetStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
 import { useLedgerPermission } from '@/hooks/useLedgerPermission'
 import { formatCurrency, formatDateString, formatRelativeTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -47,14 +48,17 @@ export function AssetsPage() {
   const addAsset = useAssetStore((state) => state.addAsset)
   const updateAsset = useAssetStore((state) => state.updateAsset)
   const deleteAsset = useAssetStore((state) => state.deleteAsset)
+  const currentLedger = useLedgerStore((state) =>
+    ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
+  )
 
   // 가계부별 자산 조회 (페이지 마운트 시)
   useEffect(() => {
-    if (!ledgerId) return
+    if (!ledgerId || !currentLedger?.encryptionKey) return
 
     fetchAssets(ledgerId)
     fetchAssetLogs(ledgerId)
-  }, [ledgerId, fetchAssets, fetchAssetLogs])
+  }, [ledgerId, fetchAssets, fetchAssetLogs, currentLedger?.encryptionKey])
 
   const assets = storeAssets.filter((a) => a.isActive)
 

@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react'
 import { AssetFormContent } from '@/components/asset/AssetFormContent'
 import { useAssetStore } from '@/stores/assetStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
 import type { Asset } from '@/types'
 
 export function AssetFormPage() {
@@ -26,13 +27,15 @@ export function AssetFormPage() {
   const fetchAssets = useAssetStore((state) => state.fetchAssets)
   const addAsset = useAssetStore((state) => state.addAsset)
   const updateAsset = useAssetStore((state) => state.updateAsset)
+  const currentLedger = useLedgerStore((state) =>
+    ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
+  )
 
   // 가계부별 자산 조회 (페이지 마운트 시)
   useEffect(() => {
-    if (!ledgerId) return
+    if (!ledgerId || !currentLedger?.encryptionKey) return
     fetchAssets(ledgerId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledgerId])
+  }, [ledgerId, fetchAssets, currentLedger?.encryptionKey])
 
   // assetId가 있으면 수정 모드
   const asset = assetId ? assets.find((a) => a.id === assetId) : undefined

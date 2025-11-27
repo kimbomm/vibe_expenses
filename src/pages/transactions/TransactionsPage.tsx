@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, ArrowUpRight, ArrowDownRight, Calendar, List, Edit, Trash2 } from 'lucide-react'
 import { startOfWeek, endOfWeek, isSameDay, format } from 'date-fns'
 import { useTransactionStore } from '@/stores/transactionStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useLedgerPermission } from '@/hooks/useLedgerPermission'
 import { formatCurrency, formatDateString } from '@/lib/utils'
@@ -38,15 +39,18 @@ export function TransactionsPage() {
   const addTransaction = useTransactionStore((state) => state.addTransaction)
   const updateTransaction = useTransactionStore((state) => state.updateTransaction)
   const deleteTransaction = useTransactionStore((state) => state.deleteTransaction)
+  const currentLedger = useLedgerStore((state) =>
+    ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
+  )
 
   // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
   useEffect(() => {
-    if (!ledgerId) return
+    if (!ledgerId || !currentLedger?.encryptionKey) return
 
     const year = currentMonth.getFullYear()
     const month = currentMonth.getMonth() + 1
     fetchTransactionsByMonth(ledgerId, year, month)
-  }, [ledgerId, currentMonth, fetchTransactionsByMonth])
+  }, [ledgerId, currentMonth, fetchTransactionsByMonth, currentLedger?.encryptionKey])
 
   // 필터링된 거래 목록 (캘린더용)
   const allFilteredTransactions = useMemo(() => {
