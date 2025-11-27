@@ -1,9 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { mockUser } from '@/lib/mocks/mockData'
+import { useAuthStore } from '@/stores/authStore'
 import { formatDateString } from '@/lib/utils'
+import { User } from 'lucide-react'
 
 export function SettingsPage() {
+  const { user } = useAuthStore()
+
   return (
     <div className="space-y-6">
       <div>
@@ -19,19 +22,32 @@ export function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
-            <img
-              src={mockUser.profileImage}
-              alt={mockUser.name}
-              className="h-16 w-16 rounded-full"
-            />
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt={user.displayName || '프로필'}
+                className="h-16 w-16 rounded-full"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden')
+                }}
+              />
+            ) : null}
+            <div
+              className={`flex h-16 w-16 items-center justify-center rounded-full bg-muted ${user?.photoURL ? 'hidden' : ''}`}
+            >
+              <User className="h-8 w-8 text-muted-foreground" />
+            </div>
             <div>
-              <h3 className="font-semibold">{mockUser.name}</h3>
-              <p className="text-sm text-muted-foreground">{mockUser.email}</p>
+              <h3 className="font-semibold">{user?.displayName || '사용자'}</h3>
+              <p className="text-sm text-muted-foreground">{user?.email || ''}</p>
             </div>
           </div>
-          <div className="text-sm text-muted-foreground">
-            가입일: {formatDateString(mockUser.createdAt)}
-          </div>
+          {user?.metadata?.creationTime && (
+            <div className="text-sm text-muted-foreground">
+              가입일: {formatDateString(new Date(user.metadata.creationTime))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

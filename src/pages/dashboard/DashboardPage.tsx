@@ -25,6 +25,11 @@ export function DashboardPage() {
   })
   const fetchTransactionsByMonth = useTransactionStore((state) => state.fetchTransactionsByMonth)
 
+  // 현재 날짜를 기본값으로 설정 (YYYY-MM 형식)
+  const now = new Date()
+  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth)
+
   // 가계부별 거래내역 조회 (페이지 마운트 시 및 포커스 시, 월별 조회)
   useEffect(() => {
     if (!ledgerId) return
@@ -44,11 +49,6 @@ export function DashboardPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ledgerId, selectedMonth])
-
-  // 현재 날짜를 기본값으로 설정 (YYYY-MM 형식)
-  const now = new Date()
-  const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth)
 
   // ledgerId가 없으면 첫 번째 가계부로 리다이렉트
   if (!ledgerId) {
