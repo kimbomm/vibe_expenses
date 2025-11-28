@@ -22,7 +22,7 @@ interface LedgerState {
     ownerName: string
   ) => Promise<string>
   updateLedger: (id: string, ledger: Partial<Ledger>) => Promise<void>
-  deleteLedger: (id: string) => Promise<void>
+  deleteLedger: (id: string, userId: string) => Promise<void>
 }
 
 export const useLedgerStore = create<LedgerState>((set, get) => {
@@ -87,24 +87,15 @@ export const useLedgerStore = create<LedgerState>((set, get) => {
     },
 
     // 가계부 삭제
-    deleteLedger: async (id) => {
+    deleteLedger: async (id, userId) => {
       try {
-        // 삭제 전에 ownerId 찾기
-        const { ledgers } = get()
-        const ledger = ledgers.find((l) => l.id === id)
-        const ownerId = ledger?.ownerId
-
-        set({ loading: true, error: null })
         await deleteLedgerById(id)
-        // 삭제 후 가계부 목록 다시 조회
-        if (ownerId) {
-          await get().fetchLedgers(ownerId)
-        } else {
-          set({ loading: false })
-        }
+        // 삭제 후 현재 사용자의 가계부 목록 다시 조회
+        // fetchLedgers가 자동으로 loading 상태를 관리하므로 여기서는 설정하지 않음
+        await get().fetchLedgers(userId)
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : '가계부 삭제 실패'
-        set({ loading: false, error: errorMessage })
+        set({ error: errorMessage })
         throw error
       }
     },

@@ -105,9 +105,15 @@ export function LedgersPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => {
+                        onClick={async () => {
                           if (confirm('정말 삭제하시겠습니까?')) {
-                            deleteLedger(ledger.id)
+                            if (!user?.uid) return
+                            try {
+                              await deleteLedger(ledger.id, user.uid)
+                            } catch (error) {
+                              console.error('가계부 삭제 실패:', error)
+                              alert('가계부 삭제에 실패했습니다.')
+                            }
                           }
                         }}
                       >

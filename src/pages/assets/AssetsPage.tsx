@@ -205,9 +205,14 @@ export function AssetsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
+                            onClick={async () => {
                               if (ledgerId && confirm('정말 삭제하시겠습니까?')) {
-                                deleteAsset(ledgerId, asset.id)
+                                try {
+                                  await deleteAsset(ledgerId, asset.id)
+                                } catch (error) {
+                                  console.error('자산 삭제 실패:', error)
+                                  alert('자산 삭제에 실패했습니다.')
+                                }
                               }
                             }}
                           >
@@ -318,10 +323,17 @@ export function AssetsPage() {
           ledgerId={ledgerId}
           asset={editingAsset}
           onSubmit={async (data) => {
-            if (editingAsset) {
-              await updateAsset(ledgerId, editingAsset.id, data, user.uid)
-            } else {
-              await addAsset({ ...data, isActive: true }, user.uid)
+            try {
+              if (editingAsset) {
+                await updateAsset(ledgerId, editingAsset.id, data, user.uid)
+              } else {
+                await addAsset({ ...data, isActive: true }, user.uid)
+              }
+              setFormOpen(false)
+              setEditingAsset(undefined)
+            } catch (error) {
+              console.error('자산 저장 실패:', error)
+              alert('자산 저장에 실패했습니다.')
             }
           }}
         />
