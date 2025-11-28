@@ -2,7 +2,16 @@ import { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, ArrowUpRight, ArrowDownRight, Calendar, List, Edit, Trash2 } from 'lucide-react'
+import {
+  Plus,
+  ArrowUpRight,
+  ArrowDownRight,
+  Calendar,
+  List,
+  Edit,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { startOfWeek, endOfWeek, isSameDay, format } from 'date-fns'
 import { useTransactionStore } from '@/stores/transactionStore'
 import { useLedgerStore } from '@/stores/ledgerStore'
@@ -12,6 +21,7 @@ import { formatCurrency, formatDateString } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { CalendarView } from '@/components/transaction/CalendarView'
 import { TransactionForm } from '@/components/transaction/TransactionForm'
+import { ImportTransactionModal } from '@/components/import/ImportTransactionModal'
 import type { Transaction } from '@/types'
 
 type DateFilter = 'day' | 'week' | 'month' | null
@@ -23,6 +33,7 @@ export function TransactionsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>()
 
   const { user } = useAuthStore()
@@ -126,17 +137,30 @@ export function TransactionsPage() {
           <p className="mt-1 text-muted-foreground">수입과 지출을 기록하세요</p>
         </div>
         {canEdit && (
-          <Button
-            size="lg"
-            className="w-full sm:w-auto"
-            onClick={() => {
-              setEditingTransaction(undefined)
-              setFormOpen(true)
-            }}
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            거래 추가
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setEditingTransaction(undefined)
+                setFormOpen(true)
+              }}
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              거래 추가
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                setImportOpen(true)
+              }}
+            >
+              <Upload className="mr-2 h-5 w-5" />
+              일괄 업로드
+            </Button>
+          </div>
         )}
       </div>
 
@@ -346,28 +370,35 @@ export function TransactionsPage() {
 
       {/* 거래 추가/수정 폼 */}
       {ledgerId && (
-        <TransactionForm
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          ledgerId={ledgerId}
-          transaction={editingTransaction}
-          onSubmit={async (data) => {
-            if (!user) return
+        <>
+          <TransactionForm
+            open={formOpen}
+            onOpenChange={setFormOpen}
+            ledgerId={ledgerId}
+            transaction={editingTransaction}
+            onSubmit={async (data) => {
+              if (!user) return
 
-            try {
-              if (editingTransaction) {
-                await updateTransaction(editingTransaction.id, data, user.uid)
-              } else {
-                await addTransaction(data, user.uid)
+              try {
+                if (editingTransaction) {
+                  await updateTransaction(editingTransaction.id, data, user.uid)
+                } else {
+                  await addTransaction(data, user.uid)
+                }
+                setFormOpen(false)
+                setEditingTransaction(undefined)
+              } catch (error) {
+                console.error('거래 저장 실패:', error)
+                alert('거래 저장에 실패했습니다.')
               }
-              setFormOpen(false)
-              setEditingTransaction(undefined)
-            } catch (error) {
-              console.error('거래 저장 실패:', error)
-              alert('거래 저장에 실패했습니다.')
-            }
-          }}
-        />
+            }}
+          />
+          <ImportTransactionModal
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            ledgerId={ledgerId}
+          />
+        </>
       )}
     </div>
   )

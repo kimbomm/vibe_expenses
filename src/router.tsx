@@ -7,11 +7,13 @@ import { LedgersPage } from '@/pages/ledgers/LedgersPage'
 import { LedgerFormPage } from '@/pages/ledgers/LedgerFormPage'
 import { TransactionsPage } from '@/pages/transactions/TransactionsPage'
 import { TransactionFormPage } from '@/pages/transactions/TransactionFormPage'
+import { ImportTransactionPage } from '@/pages/transactions/ImportTransactionPage'
 import { AssetsPage } from '@/pages/assets/AssetsPage'
 import { AssetFormPage } from '@/pages/assets/AssetFormPage'
 import { StatisticsPage } from '@/pages/statistics/StatisticsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { CategoriesPage } from '@/pages/settings/CategoriesPage'
+import { ImportCategoryPage } from '@/pages/settings/ImportCategoryPage'
 import { MembersPage } from '@/pages/members/MembersPage'
 import { InvitationsPage } from '@/pages/invitations/InvitationsPage'
 
@@ -109,6 +111,14 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: 'ledgers/:ledgerId/transactions/import',
+    element: (
+      <ProtectedRoute>
+        <ImportTransactionPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: 'ledgers/:ledgerId/assets/new',
     element: (
       <ProtectedRoute>
@@ -121,6 +131,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <AssetFormPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: 'ledgers/:ledgerId/settings/categories/import',
+    element: (
+      <ProtectedRoute>
+        <ImportCategoryPage />
       </ProtectedRoute>
     ),
   },
