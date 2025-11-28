@@ -4,8 +4,6 @@ import { db } from '@/lib/firebase/config'
 import type { LedgerCategories, CategoryType, CategoryMap } from '@/types/category'
 import {
   CATEGORIES_COLLECTION,
-  ensureDefaultCategories,
-  getDefaultCategories,
   parseCategoriesDoc,
   setCategoryGroup,
 } from '@/lib/firebase/categories'
@@ -51,7 +49,12 @@ interface CategoryState {
 }
 
 function getInitialLedgerCategories(): LedgerCategories {
-  return getDefaultCategories()
+  return {
+    income: {},
+    expense: {},
+    payment: {},
+    asset: {},
+  }
 }
 
 function cloneCategoryMap(map: CategoryMap): CategoryMap {
@@ -81,8 +84,6 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     }))
 
     try {
-      await ensureDefaultCategories(ledgerId)
-
       const docRef = doc(db, CATEGORIES_COLLECTION, ledgerId)
       const snapshot = await getDoc(docRef)
 
@@ -95,10 +96,8 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
           error: null,
         }))
       } else {
-        // 문서가 없으면 기본 카테고리 사용
-        const defaultCategories = getDefaultCategories()
         set((state) => ({
-          categories: { ...state.categories, [ledgerId]: defaultCategories },
+          categories: { ...state.categories, [ledgerId]: getInitialLedgerCategories() },
           loading: { ...state.loading, [ledgerId]: false },
           lastFetched: { ...state.lastFetched, [ledgerId]: Date.now() },
           error: null,
@@ -197,7 +196,7 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     const nextMap = updater(cloneCategoryMap(currentMap))
 
     // Firestore에 저장
-    await setCategoryGroup(ledgerId, type, nextMap)
+    await setCategoryGroup(ledgerId, type, nextMap, currentMap)
 
     // Store 상태 업데이트
     set((state) => ({

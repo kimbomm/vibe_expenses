@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp, deleteField } from 'firebase/firestore'
 import { db } from './config'
 import {
   INCOME_CATEGORIES,
@@ -23,13 +23,22 @@ export function getDefaultCategories(): LedgerCategories {
   }
 }
 
+export function getEmptyCategories(): LedgerCategories {
+  return {
+    income: {},
+    expense: {},
+    payment: {},
+    asset: {},
+  }
+}
+
 function getCategoryDocRef(ledgerId: string) {
   return doc(db, CATEGORIES_COLLECTION, ledgerId)
 }
 
-function normalizeCategoryMap(source: unknown, fallback: CategoryMap): CategoryMap {
+function normalizeCategoryMap(source: unknown): CategoryMap {
   if (!source || typeof source !== 'object') {
-    return { ...fallback }
+    return {}
   }
 
   const normalized: CategoryMap = {}
@@ -39,21 +48,20 @@ function normalizeCategoryMap(source: unknown, fallback: CategoryMap): CategoryM
     }
   })
 
-  return Object.keys(normalized).length ? normalized : { ...fallback }
+  return normalized
 }
 
 export function parseCategoriesDoc(data: unknown): LedgerCategories {
-  const defaults = getDefaultCategories()
   if (!data || typeof data !== 'object') {
-    return defaults
+    return getEmptyCategories()
   }
 
   const record = data as Record<string, unknown>
   return {
-    income: normalizeCategoryMap(record.income, defaults.income),
-    expense: normalizeCategoryMap(record.expense, defaults.expense),
-    payment: normalizeCategoryMap(record.payment, defaults.payment),
-    asset: normalizeCategoryMap(record.asset, defaults.asset),
+    income: normalizeCategoryMap(record.income),
+    expense: normalizeCategoryMap(record.expense),
+    payment: normalizeCategoryMap(record.payment),
+    asset: normalizeCategoryMap(record.asset),
   }
 }
 
@@ -71,8 +79,23 @@ export async function ensureDefaultCategories(ledgerId: string) {
   }
 }
 
-export async function setCategoryGroup(ledgerId: string, type: CategoryType, data: CategoryMap) {
+export async function setCategoryGroup(
+  ledgerId: string,
+  type: CategoryType,
+  data: CategoryMap,
+  _previous?: CategoryMap
+) {
   const ref = getCategoryDocRef(ledgerId)
+
+  // 기존 타입 전체를 제거하여 중첩 필드가 남지 않도록 처리
+  await setDoc(
+    ref,
+    {
+      [type]: deleteField(),
+    },
+    { merge: true }
+  )
+
   await setDoc(
     ref,
     {
