@@ -14,6 +14,7 @@ import { getTransactionsByLedgerAndMonths } from '@/lib/firebase/transactions'
 import { decryptTransactions } from '@/lib/crypto/transactionCrypto'
 import { useTransactionStore } from '@/stores/transactionStore'
 import { useLedgerStore } from '@/stores/ledgerStore'
+import { formatNumber } from '@/lib/utils/format'
 
 export type DateFilterType = 'all' | 'month' | 'year' | 'custom'
 
@@ -206,7 +207,7 @@ export function formatTransactionForExport(
   return {
     [headers.date]: formatDateToYYYYMMDD(transaction.date),
     [headers.type]: transaction.type === 'income' ? '수입' : '지출',
-    [headers.amount]: transaction.amount,
+    [headers.amount]: formatNumber(transaction.amount),
     [headers.category1]: transaction.category1,
     [headers.category2]: transaction.category2,
     [headers.paymentMethod1]: transaction.paymentMethod1 || '',

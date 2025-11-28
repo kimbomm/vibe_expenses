@@ -11,6 +11,7 @@ import { ImportTransactionPage } from '@/pages/transactions/ImportTransactionPag
 import { ExportTransactionPage } from '@/pages/transactions/ExportTransactionPage'
 import { AssetsPage } from '@/pages/assets/AssetsPage'
 import { AssetFormPage } from '@/pages/assets/AssetFormPage'
+import { ExportAssetPage } from '@/pages/assets/ExportAssetPage'
 import { StatisticsPage } from '@/pages/statistics/StatisticsPage'
 import { SettingsPage } from '@/pages/settings/SettingsPage'
 import { CategoriesPage } from '@/pages/settings/CategoriesPage'
@@ -148,6 +149,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <ImportCategoryPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: 'ledgers/:ledgerId/assets/export',
+    element: (
+      <ProtectedRoute>
+        <ExportAssetPage />
       </ProtectedRoute>
     ),
   },

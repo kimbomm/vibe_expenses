@@ -12,6 +12,7 @@ import {
   Edit,
   X,
   Trash2,
+  Download,
 } from 'lucide-react'
 import { useAssetStore } from '@/stores/assetStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -20,12 +21,18 @@ import { useLedgerPermission } from '@/hooks/useLedgerPermission'
 import { formatCurrency, formatDateString, formatRelativeTime } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { AssetForm } from '@/components/asset/AssetForm'
+import { ExportAssetModal } from '@/components/export/ExportAssetModal'
+import { useIsMobile } from '@/hooks/useMediaQuery'
+import { useNavigate } from 'react-router-dom'
 import type { Asset, AssetLog } from '@/types'
 
 export function AssetsPage() {
   const { ledgerId } = useParams()
+  const navigate = useNavigate()
+  const isMobile = useIsMobile()
   const [showLogs, setShowLogs] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | undefined>()
 
   const { user } = useAuthStore()
@@ -102,6 +109,21 @@ export function AssetsPage() {
           >
             <History className="mr-2 h-5 w-5" />
             변경 이력
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              if (isMobile) {
+                navigate(`/ledgers/${ledgerId}/assets/export`)
+              } else {
+                setExportOpen(true)
+              }
+            }}
+          >
+            <Download className="mr-2 h-5 w-5" />
+            내보내기
           </Button>
           {canEdit && (
             <Button
@@ -313,6 +335,11 @@ export function AssetsPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 자산 내보내기 모달 */}
+      {ledgerId && (
+        <ExportAssetModal open={exportOpen} onOpenChange={setExportOpen} ledgerId={ledgerId} />
       )}
 
       {/* 자산 추가/수정 폼 */}
