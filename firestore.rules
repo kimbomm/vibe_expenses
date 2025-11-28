@@ -59,11 +59,17 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && isLedgerOwner(ledgerId);
       
       // transactions 서브컬렉션
-      match /transactions/{monthKey}/items/{transactionId} {
+      // transactions/{monthKey} 문서 (월별 컬렉션 문서) - 목록 조회용
+      match /transactions/{monthKey} {
         allow read: if isAuthenticated() && isLedgerMember(ledgerId);
-        allow create: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
-        allow update: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
-        allow delete: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+        
+        // transactions/{monthKey}/items/{transactionId} - 실제 거래내역 문서
+        match /items/{transactionId} {
+          allow read: if isAuthenticated() && isLedgerMember(ledgerId);
+          allow create: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+          allow update: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+          allow delete: if isAuthenticated() && isLedgerMember(ledgerId) && canEdit(ledgerId);
+        }
       }
       
       // assets 서브컬렉션

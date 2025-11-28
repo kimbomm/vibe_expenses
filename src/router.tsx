@@ -8,6 +8,7 @@ import { LedgerFormPage } from '@/pages/ledgers/LedgerFormPage'
 import { TransactionsPage } from '@/pages/transactions/TransactionsPage'
 import { TransactionFormPage } from '@/pages/transactions/TransactionFormPage'
 import { ImportTransactionPage } from '@/pages/transactions/ImportTransactionPage'
+import { ExportTransactionPage } from '@/pages/transactions/ExportTransactionPage'
 import { AssetsPage } from '@/pages/assets/AssetsPage'
 import { AssetFormPage } from '@/pages/assets/AssetFormPage'
 import { StatisticsPage } from '@/pages/statistics/StatisticsPage'
@@ -115,6 +116,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <ImportTransactionPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: 'ledgers/:ledgerId/transactions/export',
+    element: (
+      <ProtectedRoute>
+        <ExportTransactionPage />
       </ProtectedRoute>
     ),
   },

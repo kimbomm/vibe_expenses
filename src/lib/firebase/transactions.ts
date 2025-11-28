@@ -93,13 +93,23 @@ export async function getTransactionsByLedgerAndMonths(
 ): Promise<Transaction[]> {
   try {
     const promises = monthKeys.map(async (monthKey) => {
-      const [year, month] = monthKey.split('-').map(Number)
-      return getTransactionsByLedgerAndMonth(ledgerId, year, month)
+      try {
+        const [year, month] = monthKey.split('-').map(Number)
+        const transactions = await getTransactionsByLedgerAndMonth(ledgerId, year, month)
+        console.log(`월 ${monthKey} 조회 완료: ${transactions.length}개`)
+        return transactions
+      } catch (error) {
+        console.error(`월 ${monthKey} 조회 실패:`, error)
+        // 개별 월 조회 실패해도 계속 진행 (빈 배열 반환)
+        return []
+      }
     })
 
     const results = await Promise.all(promises)
     // 모든 결과를 합치고 날짜순으로 정렬
-    return results.flat().sort((a, b) => b.date.getTime() - a.date.getTime())
+    const allTransactions = results.flat().sort((a, b) => b.date.getTime() - a.date.getTime())
+    console.log(`전체 조회 완료: ${allTransactions.length}개 거래내역`)
+    return allTransactions
   } catch (error) {
     console.error('거래내역 조회 실패:', error)
     throw error
@@ -127,6 +137,94 @@ export async function getTransactionsByLedger(ledgerId: string): Promise<Transac
     return getTransactionsByLedgerAndMonths(ledgerId, monthKeys)
   } catch (error) {
     console.error('거래내역 조회 실패:', error)
+    throw error
+  }
+}
+
+/**
+ * 가계부의 모든 거래 월 목록 조회
+ * ledgers/{ledgerId}/transactions 서브컬렉션의 문서 ID 목록 반환
+ *
+ * 주의: Firestore 서브컬렉션 구조에서 부모 문서가 없으면 조회되지 않을 수 있습니다.
+ * 이 경우 빈 배열을 반환하거나, Store의 기존 데이터에서 월 목록을 추출하는 것을 고려하세요.
+ */
+export async function getTransactionMonthKeys(ledgerId: string): Promise<string[]> {
+  try {
+    const transactionsRef = collection(db, 'ledgers', ledgerId, 'transactions')
+    const snapshot = await getDocs(transactionsRef)
+    let monthKeys = snapshot.docs.map((doc) => doc.id).sort()
+    console.log('getTransactionMonthKeys - Firestore에서 조회된 월 목록:', monthKeys)
+
+    // 만약 빈 배열이면, 실제로 데이터가 있는 월을 찾기 위해 시도
+    if (monthKeys.length === 0) {
+      console.warn('Firestore에서 월 목록이 비어있습니다. 실제 데이터가 있는 월을 찾는 중...')
+
+      // 최근 24개월 동안 데이터가 있는지 확인
+      const now = new Date()
+      const monthKeysToTry: string[] = []
+      for (let i = 0; i < 24; i++) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const year = date.getFullYear()
+        const month = date.getMonth() + 1
+        monthKeysToTry.push(`${year}-${String(month).padStart(2, '0')}`)
+      }
+
+      // 각 월에 실제 데이터가 있는지 확인
+      const promises = monthKeysToTry.map(async (monthKey) => {
+        try {
+          const [year, month] = monthKey.split('-').map(Number)
+          const transactions = await getTransactionsByLedgerAndMonth(ledgerId, year, month)
+          return transactions.length > 0 ? monthKey : null
+        } catch {
+          return null
+        }
+      })
+
+      const results = await Promise.all(promises)
+      monthKeys = results.filter((key): key is string => key !== null).sort()
+      console.log('getTransactionMonthKeys - 실제 데이터가 있는 월 목록:', monthKeys)
+
+      // 여전히 빈 배열이면 Store에서 추출 시도
+      if (monthKeys.length === 0) {
+        console.warn('실제 데이터가 있는 월을 찾지 못했습니다. Store에서 월 목록을 추출합니다.')
+        const { useTransactionStore } = await import('@/stores/transactionStore')
+        const { getMonthKey } = await import('@/lib/export/dateUtils')
+
+        const storeTransactions = useTransactionStore.getState().transactions[ledgerId] || []
+        if (storeTransactions.length > 0) {
+          const monthSet = new Set<string>()
+          storeTransactions.forEach((t) => {
+            monthSet.add(getMonthKey(t.date))
+          })
+          monthKeys = Array.from(monthSet).sort()
+          console.log('getTransactionMonthKeys - Store에서 추출된 월 목록:', monthKeys)
+        }
+      }
+    }
+
+    return monthKeys
+  } catch (error) {
+    console.error('거래 월 목록 조회 실패:', error)
+
+    // 에러 발생 시에도 Store에서 추출 시도
+    try {
+      const { useTransactionStore } = await import('@/stores/transactionStore')
+      const { getMonthKey } = await import('@/lib/export/dateUtils')
+
+      const storeTransactions = useTransactionStore.getState().transactions[ledgerId] || []
+      if (storeTransactions.length > 0) {
+        const monthSet = new Set<string>()
+        storeTransactions.forEach((t) => {
+          monthSet.add(getMonthKey(t.date))
+        })
+        const storeMonthKeys = Array.from(monthSet).sort()
+        console.log('getTransactionMonthKeys - 에러 후 Store에서 추출된 월 목록:', storeMonthKeys)
+        return storeMonthKeys
+      }
+    } catch (storeError) {
+      console.error('Store에서 월 목록 추출 실패:', storeError)
+    }
+
     throw error
   }
 }

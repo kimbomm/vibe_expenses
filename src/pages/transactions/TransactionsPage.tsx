@@ -11,6 +11,7 @@ import {
   Edit,
   Trash2,
   Upload,
+  Download,
 } from 'lucide-react'
 import { startOfWeek, endOfWeek, isSameDay, format } from 'date-fns'
 import { useTransactionStore } from '@/stores/transactionStore'
@@ -22,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { CalendarView } from '@/components/transaction/CalendarView'
 import { TransactionForm } from '@/components/transaction/TransactionForm'
 import { ImportTransactionModal } from '@/components/import/ImportTransactionModal'
+import { ExportTransactionModal } from '@/components/export/ExportTransactionModal'
 import type { Transaction } from '@/types'
 
 type DateFilter = 'day' | 'week' | 'month' | null
@@ -34,6 +36,7 @@ export function TransactionsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>()
 
   const { user } = useAuthStore()
@@ -136,32 +139,45 @@ export function TransactionsPage() {
           <h1 className="text-3xl font-bold">거래 내역</h1>
           <p className="mt-1 text-muted-foreground">수입과 지출을 기록하세요</p>
         </div>
-        {canEdit && (
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                setEditingTransaction(undefined)
-                setFormOpen(true)
-              }}
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              거래 추가
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={() => {
-                setImportOpen(true)
-              }}
-            >
-              <Upload className="mr-2 h-5 w-5" />
-              일괄 업로드
-            </Button>
-          </div>
-        )}
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          {canEdit && (
+            <>
+              <Button
+                size="lg"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  setEditingTransaction(undefined)
+                  setFormOpen(true)
+                }}
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                거래 추가
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => {
+                  setImportOpen(true)
+                }}
+              >
+                <Upload className="mr-2 h-5 w-5" />
+                일괄 업로드
+              </Button>
+            </>
+          )}
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => {
+              setExportOpen(true)
+            }}
+          >
+            <Download className="mr-2 h-5 w-5" />
+            내보내기
+          </Button>
+        </div>
       </div>
 
       {/* 필터 */}
@@ -396,6 +412,11 @@ export function TransactionsPage() {
           <ImportTransactionModal
             open={importOpen}
             onOpenChange={setImportOpen}
+            ledgerId={ledgerId}
+          />
+          <ExportTransactionModal
+            open={exportOpen}
+            onOpenChange={setExportOpen}
             ledgerId={ledgerId}
           />
         </>
