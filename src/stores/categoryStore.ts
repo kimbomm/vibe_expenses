@@ -195,6 +195,19 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
     const typeKey = getTypeKey(type)
     const currentMap = ledgerCategories[typeKey] || {}
     const nextMap = updater(cloneCategoryMap(currentMap))
+
+    // Firestore에 저장
     await setCategoryGroup(ledgerId, type, nextMap)
+
+    // Store 상태 업데이트
+    set((state) => ({
+      categories: {
+        ...state.categories,
+        [ledgerId]: {
+          ...(state.categories[ledgerId] || getInitialLedgerCategories()),
+          [typeKey]: nextMap,
+        },
+      },
+    }))
   },
 }))
