@@ -57,6 +57,21 @@ export function TransactionsPage() {
     ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
   )
 
+  // 작성자 정보 가져오기
+  const getCreatorInfo = (userId: string) => {
+    if (!currentLedger) return null
+
+    // 가계부 소유자인 경우
+    if (currentLedger.ownerId === userId) {
+      const ownerMember = currentLedger.members.find((m) => m.userId === currentLedger.ownerId)
+      return ownerMember || { name: '소유자', email: '' }
+    }
+
+    // 멤버인 경우
+    const member = currentLedger.members.find((m) => m.userId === userId)
+    return member || null
+  }
+
   // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
   useEffect(() => {
     if (!ledgerId || !currentLedger?.encryptionKey) return
@@ -323,6 +338,22 @@ export function TransactionsPage() {
                             </>
                           )}
                         </div>
+                        {transaction.createdBy && (
+                          <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            {(() => {
+                              const creator = getCreatorInfo(transaction.createdBy)
+                              if (!creator) return null
+                              return (
+                                <>
+                                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
+                                    {creator.name.charAt(0)}
+                                  </div>
+                                  <span>{creator.name}</span>
+                                </>
+                              )
+                            })()}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
