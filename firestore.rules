@@ -35,8 +35,27 @@ service cloud.firestore {
       );
     }
     
+    // members 배열에서 현재 사용자가 editor 또는 owner 역할인지 확인 (최대 10개 멤버까지 지원)
+    function isMemberEditorOrOwner(ledgerData) {
+      return ledgerData.members != null && (
+        (ledgerData.members.size() > 0 && ledgerData.members[0].userId == getUserId() && (ledgerData.members[0].role == 'editor' || ledgerData.members[0].role == 'owner')) ||
+        (ledgerData.members.size() > 1 && ledgerData.members[1].userId == getUserId() && (ledgerData.members[1].role == 'editor' || ledgerData.members[1].role == 'owner')) ||
+        (ledgerData.members.size() > 2 && ledgerData.members[2].userId == getUserId() && (ledgerData.members[2].role == 'editor' || ledgerData.members[2].role == 'owner')) ||
+        (ledgerData.members.size() > 3 && ledgerData.members[3].userId == getUserId() && (ledgerData.members[3].role == 'editor' || ledgerData.members[3].role == 'owner')) ||
+        (ledgerData.members.size() > 4 && ledgerData.members[4].userId == getUserId() && (ledgerData.members[4].role == 'editor' || ledgerData.members[4].role == 'owner')) ||
+        (ledgerData.members.size() > 5 && ledgerData.members[5].userId == getUserId() && (ledgerData.members[5].role == 'editor' || ledgerData.members[5].role == 'owner')) ||
+        (ledgerData.members.size() > 6 && ledgerData.members[6].userId == getUserId() && (ledgerData.members[6].role == 'editor' || ledgerData.members[6].role == 'owner')) ||
+        (ledgerData.members.size() > 7 && ledgerData.members[7].userId == getUserId() && (ledgerData.members[7].role == 'editor' || ledgerData.members[7].role == 'owner')) ||
+        (ledgerData.members.size() > 8 && ledgerData.members[8].userId == getUserId() && (ledgerData.members[8].role == 'editor' || ledgerData.members[8].role == 'owner')) ||
+        (ledgerData.members.size() > 9 && ledgerData.members[9].userId == getUserId() && (ledgerData.members[9].role == 'editor' || ledgerData.members[9].role == 'owner'))
+      );
+    }
+    
     function canEdit(ledgerId) {
-      return isAuthenticated() && isLedgerOwner(ledgerId);
+      return isAuthenticated() && (
+        isLedgerOwner(ledgerId) ||
+        isMemberEditorOrOwner(getLedger(ledgerId).data)
+      );
     }
     
     function getLedger(ledgerId) {
