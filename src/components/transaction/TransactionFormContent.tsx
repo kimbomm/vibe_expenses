@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -74,6 +74,11 @@ export function TransactionFormContent({
   const category1 = watch('category1')
   const paymentMethod1 = watch('paymentMethod1')
 
+  // 이전 값 추적 (초기 로드 시 초기화 방지)
+  const prevCategory1Ref = useRef<string | undefined>(transaction?.category1)
+  const prevPaymentMethod1Ref = useRef<string | undefined>(transaction?.paymentMethod1)
+  const isInitializedRef = useRef(false)
+
   // 금액 표시용 상태 (포맷팅된 문자열)
   const [amountDisplay, setAmountDisplay] = useState<string>(
     transaction?.amount ? formatNumber(transaction.amount) : ''
@@ -101,6 +106,9 @@ export function TransactionFormContent({
         memo: transaction.memo || '',
       })
       setAmountDisplay(transaction.amount > 0 ? formatNumber(transaction.amount) : '')
+      prevCategory1Ref.current = transaction.category1
+      prevPaymentMethod1Ref.current = transaction.paymentMethod1 || ''
+      isInitializedRef.current = true
     } else {
       reset({
         type: 'expense',
@@ -114,17 +122,34 @@ export function TransactionFormContent({
         memo: '',
       })
       setAmountDisplay('')
+      prevCategory1Ref.current = undefined
+      prevPaymentMethod1Ref.current = undefined
+      isInitializedRef.current = true
     }
   }, [transaction, reset])
 
-  // 카테고리1 변경 시 카테고리2 초기화
+  // 카테고리1 변경 시 카테고리2 초기화 (초기 로드가 아닐 때만)
   useEffect(() => {
-    setValue('category2', '')
+    if (
+      isInitializedRef.current &&
+      prevCategory1Ref.current !== undefined &&
+      category1 !== prevCategory1Ref.current
+    ) {
+      setValue('category2', '')
+    }
+    prevCategory1Ref.current = category1
   }, [category1, setValue])
 
-  // 결제수단 변경 시 세부 결제수단 초기화
+  // 결제수단 변경 시 세부 결제수단 초기화 (초기 로드가 아닐 때만)
   useEffect(() => {
-    setValue('paymentMethod2', '')
+    if (
+      isInitializedRef.current &&
+      prevPaymentMethod1Ref.current !== undefined &&
+      paymentMethod1 !== prevPaymentMethod1Ref.current
+    ) {
+      setValue('paymentMethod2', '')
+    }
+    prevPaymentMethod1Ref.current = paymentMethod1
   }, [paymentMethod1, setValue])
 
   const onFormSubmit = (data: TransactionFormData) => {
