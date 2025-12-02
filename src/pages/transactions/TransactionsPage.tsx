@@ -340,7 +340,7 @@ export function TransactionsPage() {
                           {formatDateString(transaction.date)}
                         </div>
                       </div>
-                      {canEdit && (
+                      {canEdit && transaction.createdBy === user?.uid && (
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
