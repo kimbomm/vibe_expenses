@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useCategories } from '@/hooks/useCategories'
+import { useCategoryStore } from '@/stores/categoryStore'
 import type { Transaction } from '@/types'
 import { formatDateString, formatNumber } from '@/lib/utils'
 
@@ -48,26 +49,49 @@ export function TransactionFormContent({
     getPaymentMethod2List,
   } = useCategories(ledgerId)
 
+  // 카테고리 로드 상태 확인
+  const ledgerCategories = useCategoryStore((state) => state.categories[ledgerId])
+  const categoriesLoaded = !!ledgerCategories
+
+  // transaction이 있을 때 기본값 설정
+  const getDefaultValues = (tx?: Transaction): TransactionFormData => {
+    if (tx) {
+      return {
+        type: tx.type,
+        amount: tx.amount,
+        date: formatDateString(tx.date),
+        category1: tx.category1,
+        category2: tx.category2,
+        paymentMethod1: tx.paymentMethod1 || '',
+        paymentMethod2: tx.paymentMethod2 || '',
+        description: tx.description,
+        memo: tx.memo || '',
+      }
+    }
+    return {
+      type: 'expense',
+      amount: 0,
+      date: formatDateString(new Date()),
+      category1: '',
+      category2: '',
+      paymentMethod1: '',
+      paymentMethod2: '',
+      description: '',
+      memo: '',
+    }
+  }
+
   const {
     register,
     handleSubmit,
     watch,
     setValue,
     reset,
+    control,
     formState: { errors },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: {
-      type: transaction?.type || 'expense',
-      amount: transaction?.amount || 0,
-      date: transaction ? formatDateString(transaction.date) : formatDateString(new Date()),
-      category1: transaction?.category1 || '',
-      category2: transaction?.category2 || '',
-      paymentMethod1: transaction?.paymentMethod1 || '',
-      paymentMethod2: transaction?.paymentMethod2 || '',
-      description: transaction?.description || '',
-      memo: transaction?.memo || '',
-    },
+    defaultValues: getDefaultValues(transaction),
   })
 
   const type = watch('type')
@@ -75,9 +99,11 @@ export function TransactionFormContent({
   const paymentMethod1 = watch('paymentMethod1')
 
   // 이전 값 추적 (초기 로드 시 초기화 방지)
-  const prevCategory1Ref = useRef<string | undefined>(transaction?.category1)
-  const prevPaymentMethod1Ref = useRef<string | undefined>(transaction?.paymentMethod1)
+  const prevCategory1Ref = useRef<string | undefined>(undefined)
+  const prevPaymentMethod1Ref = useRef<string | undefined>(undefined)
   const isInitializedRef = useRef(false)
+  const prevTransactionIdRef = useRef<string | undefined>(undefined)
+  const categoryValuesSetRef = useRef<string | undefined>(undefined)
 
   // 금액 표시용 상태 (포맷팅된 문자열)
   const [amountDisplay, setAmountDisplay] = useState<string>(
@@ -92,41 +118,85 @@ export function TransactionFormContent({
     setAmountDisplay(numValue > 0 ? formatNumber(numValue) : '')
   }
 
+  // transaction이 변경될 때 폼 리셋
   useEffect(() => {
-    if (transaction) {
-      reset({
-        type: transaction.type,
-        amount: transaction.amount,
-        date: formatDateString(transaction.date),
-        category1: transaction.category1,
-        category2: transaction.category2,
-        paymentMethod1: transaction.paymentMethod1 || '',
-        paymentMethod2: transaction.paymentMethod2 || '',
-        description: transaction.description,
-        memo: transaction.memo || '',
-      })
-      setAmountDisplay(transaction.amount > 0 ? formatNumber(transaction.amount) : '')
-      prevCategory1Ref.current = transaction.category1
-      prevPaymentMethod1Ref.current = transaction.paymentMethod1 || ''
+    const currentTransactionId = transaction?.id
+
+    // transaction.id가 변경된 경우에만 리셋
+    // transaction이 undefined에서 값으로 변경되거나, 다른 transaction으로 변경될 때
+    if (prevTransactionIdRef.current !== currentTransactionId) {
+      if (transaction) {
+        const defaultValues: TransactionFormData = {
+          type: transaction.type,
+          amount: transaction.amount,
+          date: formatDateString(transaction.date),
+          category1: transaction.category1,
+          category2: transaction.category2,
+          paymentMethod1: transaction.paymentMethod1 || '',
+          paymentMethod2: transaction.paymentMethod2 || '',
+          description: transaction.description,
+          memo: transaction.memo || '',
+        }
+        reset(defaultValues)
+        setAmountDisplay(transaction.amount > 0 ? formatNumber(transaction.amount) : '')
+        prevCategory1Ref.current = transaction.category1
+        prevPaymentMethod1Ref.current = transaction.paymentMethod1 || ''
+      } else {
+        const defaultValues: TransactionFormData = {
+          type: 'expense',
+          amount: 0,
+          date: formatDateString(new Date()),
+          category1: '',
+          category2: '',
+          paymentMethod1: '',
+          paymentMethod2: '',
+          description: '',
+          memo: '',
+        }
+        reset(defaultValues)
+        setAmountDisplay('')
+        prevCategory1Ref.current = undefined
+        prevPaymentMethod1Ref.current = undefined
+      }
+
       isInitializedRef.current = true
-    } else {
-      reset({
-        type: 'expense',
-        amount: 0,
-        date: formatDateString(new Date()),
-        category1: '',
-        category2: '',
-        paymentMethod1: '',
-        paymentMethod2: '',
-        description: '',
-        memo: '',
-      })
-      setAmountDisplay('')
-      prevCategory1Ref.current = undefined
-      prevPaymentMethod1Ref.current = undefined
-      isInitializedRef.current = true
+      prevTransactionIdRef.current = currentTransactionId
+      // transaction이 변경되면 categoryValuesSetRef도 초기화
+      categoryValuesSetRef.current = undefined
     }
-  }, [transaction, reset])
+  }, [transaction?.id, reset])
+
+  // 카테고리가 로드된 후 셀렉트 박스 값 설정 (한 번만 실행)
+  useEffect(() => {
+    if (
+      categoriesLoaded &&
+      transaction &&
+      prevTransactionIdRef.current === transaction.id &&
+      categoryValuesSetRef.current !== transaction.id
+    ) {
+      // 카테고리 리스트가 로드된 후에만 셀렉트 박스 값 설정
+      // 한 번만 실행되도록 transaction.id를 추적
+      const timer = setTimeout(() => {
+        setValue('category1', transaction.category1, { shouldValidate: false, shouldDirty: false })
+        setValue('category2', transaction.category2, { shouldValidate: false, shouldDirty: false })
+        if (transaction.paymentMethod1) {
+          setValue('paymentMethod1', transaction.paymentMethod1, {
+            shouldValidate: false,
+            shouldDirty: false,
+          })
+        }
+        if (transaction.paymentMethod2) {
+          setValue('paymentMethod2', transaction.paymentMethod2, {
+            shouldValidate: false,
+            shouldDirty: false,
+          })
+        }
+        categoryValuesSetRef.current = transaction.id
+      }, 0)
+
+      return () => clearTimeout(timer)
+    }
+  }, [categoriesLoaded, transaction, setValue])
 
   // 카테고리1 변경 시 카테고리2 초기화 (초기 로드가 아닐 때만)
   useEffect(() => {
@@ -228,26 +298,51 @@ export function TransactionFormContent({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="category1">대분류 *</Label>
-          <Select id="category1" {...register('category1')}>
-            <option value="">선택하세요</option>
-            {category1List.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            name="category1"
+            control={control}
+            render={({ field }) => (
+              <Select
+                id="category1"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                ref={field.ref}
+              >
+                <option value="">선택하세요</option>
+                {category1List.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
           {errors.category1 && <p className="text-sm text-red-500">{errors.category1.message}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="category2">소분류 *</Label>
-          <Select id="category2" {...register('category2')} disabled={!category1}>
-            <option value="">선택하세요</option>
-            {category2List.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            name="category2"
+            control={control}
+            render={({ field }) => (
+              <Select
+                id="category2"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                disabled={!category1}
+              >
+                <option value="">선택하세요</option>
+                {category2List.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </Select>
+            )}
+          />
           {errors.category2 && <p className="text-sm text-red-500">{errors.category2.message}</p>}
         </div>
       </div>
@@ -257,26 +352,51 @@ export function TransactionFormContent({
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="paymentMethod1">결제수단</Label>
-            <Select id="paymentMethod1" {...register('paymentMethod1')}>
-              <option value="">선택하세요</option>
-              {getPaymentMethod1List().map((method) => (
-                <option key={method} value={method}>
-                  {method}
-                </option>
-              ))}
-            </Select>
+            <Controller
+              name="paymentMethod1"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  id="paymentMethod1"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                >
+                  <option value="">선택하세요</option>
+                  {getPaymentMethod1List().map((method) => (
+                    <option key={method} value={method}>
+                      {method}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="paymentMethod2">세부 결제수단</Label>
-            <Select id="paymentMethod2" {...register('paymentMethod2')} disabled={!paymentMethod1}>
-              <option value="">선택하세요</option>
-              {paymentMethod1 &&
-                getPaymentMethod2List(paymentMethod1).map((method) => (
-                  <option key={method} value={method}>
-                    {method}
-                  </option>
-                ))}
-            </Select>
+            <Controller
+              name="paymentMethod2"
+              control={control}
+              render={({ field }) => (
+                <Select
+                  id="paymentMethod2"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  disabled={!paymentMethod1}
+                >
+                  <option value="">선택하세요</option>
+                  {paymentMethod1 &&
+                    getPaymentMethod2List(paymentMethod1).map((method) => (
+                      <option key={method} value={method}>
+                        {method}
+                      </option>
+                    ))}
+                </Select>
+              )}
+            />
           </div>
         </div>
       )}
