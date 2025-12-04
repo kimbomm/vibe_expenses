@@ -7,6 +7,7 @@ import {
   parseCategoriesDoc,
   setCategoryGroup,
 } from '@/lib/firebase/categories'
+import { isLiabilityCategory } from '@/lib/utils/asset'
 
 interface CategoryState {
   categories: Record<string, LedgerCategories>
@@ -124,6 +125,18 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
 
   updateCategory1: async (ledgerId, type, oldName, newName) => {
     if (!newName.trim() || oldName === newName.trim()) return
+
+    // 부채 카테고리 수정 방지
+    if (type === 'asset') {
+      const state = get()
+      const ledgerCategories = state.categories[ledgerId] || getInitialLedgerCategories()
+      const assetCategories = ledgerCategories.asset || {}
+
+      if (isLiabilityCategory(oldName, assetCategories)) {
+        throw new Error('부채 카테고리는 수정할 수 없습니다.')
+      }
+    }
+
     const trimmed = newName.trim()
 
     await get().updateCategoryGroup(ledgerId, type, (current) => {
@@ -134,6 +147,17 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
   },
 
   deleteCategory1: async (ledgerId, type, name) => {
+    // 부채 카테고리 삭제 방지
+    if (type === 'asset') {
+      const state = get()
+      const ledgerCategories = state.categories[ledgerId] || getInitialLedgerCategories()
+      const assetCategories = ledgerCategories.asset || {}
+
+      if (isLiabilityCategory(name, assetCategories)) {
+        throw new Error('부채 카테고리는 삭제할 수 없습니다.')
+      }
+    }
+
     await get().updateCategoryGroup(ledgerId, type, (current) => {
       const { [name]: _, ...rest } = current
       return rest

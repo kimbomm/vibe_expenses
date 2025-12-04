@@ -34,6 +34,9 @@ export const ASSET_CATEGORIES = {
   부채: ['신용카드', '대출', '할부', '기타 부채'],
 } as const
 
+// 부채 카테고리 기본 키 (사용자가 이름을 변경해도 추적 가능하도록)
+export const DEFAULT_LIABILITY_CATEGORY_KEY = '부채' as const
+
 // 카테고리 헬퍼 함수
 export const getIncomeCategory1List = () => Object.keys(INCOME_CATEGORIES)
 export const getIncomeCategory2List = (category1: string) =>

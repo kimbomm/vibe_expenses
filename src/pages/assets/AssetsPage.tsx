@@ -2,35 +2,25 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Plus,
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  History,
-  PlusCircle,
-  Edit,
-  X,
-  Trash2,
-  Download,
-} from 'lucide-react'
+import { Plus, Wallet, TrendingUp, TrendingDown, Edit, Trash2, Download } from 'lucide-react'
 import { useAssetStore } from '@/stores/assetStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useLedgerStore } from '@/stores/ledgerStore'
 import { useLedgerPermission } from '@/hooks/useLedgerPermission'
-import { formatCurrency, formatDateString, formatRelativeTime } from '@/lib/utils'
+import { useCategoryStore } from '@/stores/categoryStore'
+import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { isLiabilityCategory } from '@/lib/utils/asset'
 import { AssetForm } from '@/components/asset/AssetForm'
 import { ExportAssetModal } from '@/components/export/ExportAssetModal'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useNavigate } from 'react-router-dom'
-import type { Asset, AssetLog } from '@/types'
+import type { Asset } from '@/types'
 
 export function AssetsPage() {
   const { ledgerId } = useParams()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
-  const [showLogs, setShowLogs] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | undefined>()
@@ -40,18 +30,12 @@ export function AssetsPage() {
 
   // 빈 배열을 상수로 정의하여 같은 참조를 유지
   const EMPTY_ASSETS: Asset[] = useMemo(() => [], [])
-  const EMPTY_LOGS: AssetLog[] = useMemo(() => [], [])
 
   const storeAssets = useAssetStore((state) => {
     if (!ledgerId) return EMPTY_ASSETS
     return state.assets[ledgerId] || EMPTY_ASSETS
   })
-  const storeAssetLogs = useAssetStore((state) => {
-    if (!ledgerId) return EMPTY_LOGS
-    return state.assetLogs[ledgerId] || EMPTY_LOGS
-  })
   const fetchAssets = useAssetStore((state) => state.fetchAssets)
-  const fetchAssetLogs = useAssetStore((state) => state.fetchAssetLogs)
   const addAsset = useAssetStore((state) => state.addAsset)
   const updateAsset = useAssetStore((state) => state.updateAsset)
   const deleteAsset = useAssetStore((state) => state.deleteAsset)
@@ -59,20 +43,19 @@ export function AssetsPage() {
     ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
   )
 
+  // 카테고리 정보 가져오기 (부채 카테고리 감지용)
+  const assetCategories = useCategoryStore((state) =>
+    ledgerId ? state.categories[ledgerId]?.asset : undefined
+  )
+
   // 가계부별 자산 조회 (페이지 마운트 시)
   useEffect(() => {
     if (!ledgerId || !currentLedger?.encryptionKey) return
 
     fetchAssets(ledgerId)
-    fetchAssetLogs(ledgerId)
-  }, [ledgerId, fetchAssets, fetchAssetLogs, currentLedger?.encryptionKey])
+  }, [ledgerId, fetchAssets, currentLedger?.encryptionKey])
 
   const assets = storeAssets.filter((a) => a.isActive)
-
-  // 자산 로그 정렬
-  const assetLogs = [...storeAssetLogs].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-  )
 
   // 카테고리별 그룹핑
   const assetsByCategory = assets.reduce(
@@ -86,11 +69,13 @@ export function AssetsPage() {
     {} as Record<string, typeof assets>
   )
 
-  // 총 자산 계산
-  const totalAssets = assets.filter((a) => a.balance > 0).reduce((sum, a) => sum + a.balance, 0)
-  const totalLiabilities = Math.abs(
-    assets.filter((a) => a.balance < 0).reduce((sum, a) => sum + a.balance, 0)
-  )
+  // 총 자산 계산 (카테고리 기반 - 동적 부채 카테고리 감지)
+  const totalAssets = assets
+    .filter((a) => !isLiabilityCategory(a.category1, assetCategories))
+    .reduce((sum, a) => sum + Math.abs(a.balance), 0)
+  const totalLiabilities = assets
+    .filter((a) => isLiabilityCategory(a.category1, assetCategories))
+    .reduce((sum, a) => sum + Math.abs(a.balance), 0)
   const netWorth = totalAssets - totalLiabilities
 
   return (
@@ -100,20 +85,11 @@ export function AssetsPage() {
           <h1 className="text-3xl font-bold">자산 현황</h1>
           <p className="mt-1 text-muted-foreground">나의 자산을 관리하세요</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={showLogs ? 'default' : 'outline'}
-            size="lg"
-            onClick={() => setShowLogs(!showLogs)}
-            className="w-full sm:w-auto"
-          >
-            <History className="mr-2 h-5 w-5" />
-            변경 이력
-          </Button>
+        <div className="flex flex-wrap gap-2">
           <Button
             size="lg"
             variant="outline"
-            className="w-full sm:w-auto"
+            className="flex-1 sm:flex-initial"
             onClick={() => {
               if (isMobile) {
                 navigate(`/ledgers/${ledgerId}/assets/export`)
@@ -128,7 +104,7 @@ export function AssetsPage() {
           {canEdit && (
             <Button
               size="lg"
-              className="w-full sm:w-auto"
+              className="flex-1 sm:flex-initial"
               onClick={() => {
                 setEditingAsset(undefined)
                 setFormOpen(true)
@@ -202,21 +178,24 @@ export function AssetsPage() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between gap-2 sm:justify-end">
-                      <div className="flex-shrink-0 text-right">
+                      <div className="flex-shrink-0 text-right sm:min-w-[120px]">
                         <div
                           className={cn(
-                            'text-lg font-bold',
-                            asset.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                            'text-base font-bold sm:text-lg',
+                            isLiabilityCategory(asset.category1, assetCategories)
+                              ? 'text-red-600'
+                              : 'text-green-600'
                           )}
                         >
                           {formatCurrency(Math.abs(asset.balance))}
                         </div>
                       </div>
                       {canEdit && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex shrink-0 items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 sm:h-10 sm:w-10"
                             onClick={() => {
                               setEditingAsset(asset)
                               setFormOpen(true)
@@ -227,6 +206,7 @@ export function AssetsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 sm:h-10 sm:w-10"
                             onClick={async () => {
                               if (ledgerId && confirm('정말 삭제하시겠습니까?')) {
                                 try {
@@ -250,92 +230,6 @@ export function AssetsPage() {
           </Card>
         ))}
       </div>
-
-      {/* 자산 변경 이력 */}
-      {showLogs && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>자산 변경 이력</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowLogs(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {assetLogs.map((log) => {
-                const asset = assets.find((a) => a.id === log.assetId)
-                const getLogIcon = () => {
-                  switch (log.type) {
-                    case 'created':
-                      return <PlusCircle className="h-4 w-4 text-blue-500" />
-                    case 'updated':
-                      return <Edit className="h-4 w-4 text-primary" />
-                    case 'balance_changed':
-                      return <TrendingUp className="h-4 w-4 text-green-500" />
-                    case 'deactivated':
-                      return <X className="h-4 w-4 text-red-500" />
-                    case 'reactivated':
-                      return <PlusCircle className="h-4 w-4 text-green-500" />
-                    default:
-                      return <History className="h-4 w-4 text-muted-foreground" />
-                  }
-                }
-
-                const getLogLabel = () => {
-                  switch (log.type) {
-                    case 'created':
-                      return '생성'
-                    case 'updated':
-                      return '수정'
-                    case 'balance_changed':
-                      return '잔액 변경'
-                    case 'deactivated':
-                      return '비활성화'
-                    case 'reactivated':
-                      return '재활성화'
-                    default:
-                      return '변경'
-                  }
-                }
-
-                return (
-                  <div key={log.id} className="flex items-start gap-4 rounded-lg border p-4">
-                    <div className="flex-shrink-0 rounded-lg bg-muted p-2">{getLogIcon()}</div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">{asset?.name || '알 수 없음'}</span>
-                        <span className="text-xs text-muted-foreground">({getLogLabel()})</span>
-                      </div>
-                      <p className="mt-1 text-sm text-muted-foreground">{log.description}</p>
-                      {log.type === 'balance_changed' && log.previousBalance !== undefined && (
-                        <div className="mt-2 flex items-center gap-2 text-sm">
-                          <span className="text-muted-foreground">
-                            {formatCurrency(log.previousBalance)}
-                          </span>
-                          <span className="text-muted-foreground">→</span>
-                          <span className="font-semibold text-primary">
-                            {formatCurrency(log.newBalance || 0)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 text-right">
-                      <div className="text-xs text-muted-foreground">
-                        {formatDateString(log.createdAt)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatRelativeTime(log.createdAt)}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* 자산 내보내기 모달 */}
       {ledgerId && (

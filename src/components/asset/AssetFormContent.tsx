@@ -59,15 +59,26 @@ export function AssetFormContent({
 
   const category1 = watch('category1')
   const [balanceDisplay, setBalanceDisplay] = useState<string>(
-    asset?.balance ? formatNumber(asset.balance) : ''
+    asset?.balance ? formatNumber(Math.abs(asset.balance)) : ''
   )
 
   // 잔액 입력 핸들러 (실시간 포맷팅)
   const handleBalanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^0-9-]/g, '') // 숫자와 마이너스만 추출
-    const numValue = value ? parseInt(value, 10) : 0
-    setValue('balance', numValue)
-    setBalanceDisplay(value ? formatNumber(numValue) : '')
+    // 숫자만 추출 (카테고리로 부채를 구분하므로 항상 양수)
+    const rawValue = e.target.value.replace(/[^0-9]/g, '')
+
+    if (rawValue === '') {
+      setValue('balance', 0)
+      setBalanceDisplay('')
+      return
+    }
+
+    // 숫자 문자열을 숫자로 변환 (항상 양수)
+    const numValue = parseInt(rawValue, 10)
+    if (!isNaN(numValue) && numValue >= 0) {
+      setValue('balance', numValue)
+      setBalanceDisplay(formatNumber(numValue))
+    }
   }
 
   useEffect(() => {
@@ -76,10 +87,10 @@ export function AssetFormContent({
         name: asset.name,
         category1: asset.category1,
         category2: asset.category2,
-        balance: asset.balance,
+        balance: Math.abs(asset.balance), // 항상 양수로 저장
         memo: asset.memo || '',
       })
-      setBalanceDisplay(formatNumber(asset.balance))
+      setBalanceDisplay(formatNumber(Math.abs(asset.balance)))
     } else {
       reset({
         name: '',

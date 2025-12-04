@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Edit, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import { useCategoryStore } from '@/stores/categoryStore'
+import { isLiabilityCategory } from '@/lib/utils/asset'
 import type { CategoryType } from '@/types/category'
 
 const categoryLabels: Record<CategoryType, string> = {
@@ -65,21 +66,41 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
 
   const handleUpdateCategory1 = async (oldName: string) => {
     if (!newCategory1Name.trim() || newCategory1Name.trim() === oldName) return
+
+    // 부채 카테고리 수정 방지
+    if (type === 'asset' && isLiabilityCategory(oldName, categories)) {
+      alert('부채 카테고리는 수정할 수 없습니다.')
+      setEditingCategory1(null)
+      setNewCategory1Name('')
+      return
+    }
+
     try {
       await updateCategory1(ledgerId, type, oldName, newCategory1Name.trim())
       setEditingCategory1(null)
       setNewCategory1Name('')
     } catch (error) {
       console.error('1단계 카테고리 수정 실패:', error)
+      const errorMessage = error instanceof Error ? error.message : '카테고리 수정에 실패했습니다.'
+      alert(errorMessage)
     }
   }
 
   const handleDeleteCategory1 = async (name: string) => {
+    // 부채 카테고리 삭제 방지
+    if (type === 'asset' && isLiabilityCategory(name, categories)) {
+      alert('부채 카테고리는 삭제할 수 없습니다.')
+      return
+    }
+
     if (confirm(`"${name}" 카테고리를 삭제하시겠습니까? 하위 카테고리도 모두 삭제됩니다.`)) {
       try {
         await deleteCategory1(ledgerId, type, name)
       } catch (error) {
         console.error('1단계 카테고리 삭제 실패:', error)
+        const errorMessage =
+          error instanceof Error ? error.message : '카테고리 삭제에 실패했습니다.'
+        alert(errorMessage)
       }
     }
   }
@@ -143,217 +164,247 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
           <div className="text-sm text-muted-foreground">등록된 카테고리가 없습니다.</div>
         )}
 
-        {Object.entries(categories).map(([category1, category2List]) => (
-          <div key={category1} className="space-y-1">
-            <div className="relative rounded-lg border p-2">
-              {editingCategory1 === category1 ? (
-                <div className="flex flex-1 items-center gap-2">
-                  <Input
-                    value={newCategory1Name}
-                    onChange={(e) => setNewCategory1Name(e.target.value)}
-                    placeholder="카테고리 이름"
-                    className="flex-1"
-                    autoFocus
-                  />
-                  <Button size="sm" onClick={() => handleUpdateCategory1(category1)}>
-                    저장
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingCategory1(null)
-                      setNewCategory1Name('')
-                    }}
-                  >
-                    취소
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  {/* 모바일: 수정/삭제 버튼 우상단 */}
-                  <div className="absolute right-2 top-2 flex items-center gap-1 sm:hidden">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => {
-                        setEditingCategory1(category1)
-                        setNewCategory1Name(category1)
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-red-500"
-                      onClick={() => handleDeleteCategory1(category1)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {/* PC: 타이틀, 수정/삭제, 2단계 추가 모두 같은 라인 */}
-                  <div className="flex items-center gap-2 pr-20 sm:pr-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => toggleExpand(category1)}
-                    >
-                      {expandedCategories.has(category1) ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <span className="flex-1 font-medium">{category1}</span>
-                    <div className="hidden items-center gap-1 sm:flex">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => {
-                          setEditingCategory1(category1)
-                          setNewCategory1Name(category1)
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-red-500"
-                        onClick={() => handleDeleteCategory1(category1)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setNewCategory2Name('')
-                          setShowAddCategory2(category1)
-                        }}
-                      >
-                        <Plus className="mr-1 h-3 w-3" />
-                        2단계 추가
-                      </Button>
-                    </div>
-                  </div>
-                  {/* 모바일: 2단계 추가 버튼 하단 full 너비 */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-2 w-full sm:hidden"
-                    onClick={() => {
-                      setNewCategory2Name('')
-                      setShowAddCategory2(category1)
-                    }}
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    2단계 추가
-                  </Button>
-                </>
-              )}
-            </div>
+        {Object.entries(categories).map(([category1, category2List]) => {
+          const isLiability = type === 'asset' && isLiabilityCategory(category1, categories)
 
-            {expandedCategories.has(category1) && (
-              <div className="ml-8 space-y-1">
-                {category2List.map((category2) => (
-                  <div
-                    key={category2}
-                    className="flex items-center gap-2 rounded-lg border bg-muted/50 p-2"
-                  >
-                    {editingCategory2?.category1 === category1 &&
-                    editingCategory2?.name === category2 ? (
-                      <div className="flex flex-1 items-center gap-2">
-                        <Input
-                          value={newCategory2Name}
-                          onChange={(e) => setNewCategory2Name(e.target.value)}
-                          placeholder="카테고리 이름"
-                          className="flex-1"
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdateCategory2(category1, category2)}
-                        >
-                          저장
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setEditingCategory2(null)
-                            setNewCategory2Name('')
-                          }}
-                        >
-                          취소
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="flex-1 text-sm">{category2}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => {
-                            setEditingCategory2({ category1, name: category2 })
-                            setNewCategory2Name(category2)
-                          }}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 text-red-500"
-                          onClick={() => handleDeleteCategory2(category1, category2)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                ))}
-                {showAddCategory2 === category1 && (
-                  <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-2">
+          return (
+            <div key={category1} className="space-y-1">
+              <div className="relative rounded-lg border p-2">
+                {editingCategory1 === category1 ? (
+                  <div className="flex flex-1 items-center gap-2">
                     <Input
-                      value={newCategory2Name}
-                      onChange={(e) => setNewCategory2Name(e.target.value)}
-                      placeholder="2단계 카테고리 이름"
+                      value={newCategory1Name}
+                      onChange={(e) => setNewCategory1Name(e.target.value)}
+                      placeholder="카테고리 이름"
                       className="flex-1"
                       autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleAddCategory2(category1)
-                        } else if (e.key === 'Escape') {
-                          setShowAddCategory2(null)
-                          setNewCategory2Name('')
-                        }
-                      }}
+                      disabled={isLiability}
                     />
-                    <Button size="sm" onClick={() => handleAddCategory2(category1)}>
-                      추가
+                    <Button
+                      size="sm"
+                      onClick={() => handleUpdateCategory1(category1)}
+                      disabled={isLiability}
+                    >
+                      저장
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setShowAddCategory2(null)
-                        setNewCategory2Name('')
+                        setEditingCategory1(null)
+                        setNewCategory1Name('')
                       }}
                     >
                       취소
                     </Button>
                   </div>
+                ) : (
+                  <>
+                    {/* 모바일: 수정/삭제 버튼 우상단 */}
+                    <div className="absolute right-2 top-2 flex items-center gap-1 sm:hidden">
+                      {isLiability ? (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Lock className="h-3 w-3" />
+                          <span>고정</span>
+                        </div>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              setEditingCategory1(category1)
+                              setNewCategory1Name(category1)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-red-500"
+                            onClick={() => handleDeleteCategory1(category1)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                    {/* PC: 타이틀, 수정/삭제, 2단계 추가 모두 같은 라인 */}
+                    <div className="flex items-center gap-2 pr-20 sm:pr-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => toggleExpand(category1)}
+                      >
+                        {expandedCategories.has(category1) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <span className="flex flex-1 items-center gap-2 font-medium">
+                        {category1}
+                        {isLiability && (
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Lock className="h-3 w-3" />
+                            <span className="hidden sm:inline">고정 카테고리</span>
+                          </span>
+                        )}
+                      </span>
+                      <div className="hidden items-center gap-1 sm:flex">
+                        {!isLiability && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => {
+                                setEditingCategory1(category1)
+                                setNewCategory1Name(category1)
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-red-500"
+                              onClick={() => handleDeleteCategory1(category1)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setNewCategory2Name('')
+                            setShowAddCategory2(category1)
+                          }}
+                        >
+                          <Plus className="mr-1 h-3 w-3" />
+                          2단계 추가
+                        </Button>
+                      </div>
+                    </div>
+                    {/* 모바일: 2단계 추가 버튼 하단 full 너비 */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 w-full sm:hidden"
+                      onClick={() => {
+                        setNewCategory2Name('')
+                        setShowAddCategory2(category1)
+                      }}
+                    >
+                      <Plus className="mr-1 h-3 w-3" />
+                      2단계 추가
+                    </Button>
+                  </>
                 )}
               </div>
-            )}
-          </div>
-        ))}
+
+              {expandedCategories.has(category1) && (
+                <div className="ml-8 space-y-1">
+                  {category2List.map((category2) => (
+                    <div
+                      key={category2}
+                      className="flex items-center gap-2 rounded-lg border bg-muted/50 p-2"
+                    >
+                      {editingCategory2?.category1 === category1 &&
+                      editingCategory2?.name === category2 ? (
+                        <div className="flex flex-1 items-center gap-2">
+                          <Input
+                            value={newCategory2Name}
+                            onChange={(e) => setNewCategory2Name(e.target.value)}
+                            placeholder="카테고리 이름"
+                            className="flex-1"
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdateCategory2(category1, category2)}
+                          >
+                            저장
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingCategory2(null)
+                              setNewCategory2Name('')
+                            }}
+                          >
+                            취소
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="flex-1 text-sm">{category2}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              setEditingCategory2({ category1, name: category2 })
+                              setNewCategory2Name(category2)
+                            }}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-red-500"
+                            onClick={() => handleDeleteCategory2(category1, category2)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  {showAddCategory2 === category1 && (
+                    <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-2">
+                      <Input
+                        value={newCategory2Name}
+                        onChange={(e) => setNewCategory2Name(e.target.value)}
+                        placeholder="2단계 카테고리 이름"
+                        className="flex-1"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleAddCategory2(category1)
+                          } else if (e.key === 'Escape') {
+                            setShowAddCategory2(null)
+                            setNewCategory2Name('')
+                          }
+                        }}
+                      />
+                      <Button size="sm" onClick={() => handleAddCategory2(category1)}>
+                        추가
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddCategory2(null)
+                          setNewCategory2Name('')
+                        }}
+                      >
+                        취소
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
 
         {showAddCategory1 && (
           <div className="flex items-center gap-2 rounded-lg border p-2">
