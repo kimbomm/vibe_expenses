@@ -282,6 +282,10 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => {
+                            // 아코디언이 닫혀있으면 열기
+                            if (!expandedCategories.has(category1)) {
+                              toggleExpand(category1)
+                            }
                             setNewCategory2Name('')
                             setShowAddCategory2(category1)
                           }}
@@ -297,6 +301,10 @@ export function CategoryManager({ ledgerId, type }: CategoryManagerProps) {
                       size="sm"
                       className="mt-2 w-full sm:hidden"
                       onClick={() => {
+                        // 아코디언이 닫혀있으면 열기
+                        if (!expandedCategories.has(category1)) {
+                          toggleExpand(category1)
+                        }
                         setNewCategory2Name('')
                         setShowAddCategory2(category1)
                       }}
