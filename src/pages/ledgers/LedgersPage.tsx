@@ -140,7 +140,7 @@ export function LedgersPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Link to={`/ledgers/${ledger.id}/transactions`} className="flex-1">
+                    <Link to={`/ledgers/${ledger.id}/dashboard`} className="flex-1">
                       <Button className="w-full">보기</Button>
                     </Link>
                     <Link to={`/ledgers/${ledger.id}/settings/categories`}>

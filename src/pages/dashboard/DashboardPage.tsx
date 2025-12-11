@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, type ReactElement } from 'react'
 import { useParams, Navigate } from 'react-router-dom'
-import { Link } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowUpRight, ArrowDownRight, Wallet, Plus } from 'lucide-react'
@@ -11,7 +10,6 @@ import { formatCurrency, formatPercent } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { MonthPicker } from '@/components/dashboard/MonthPicker'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 import type { Transaction } from '@/types'
 
 export function DashboardPage() {
@@ -104,38 +102,45 @@ export function DashboardPage() {
       .sort((a, b) => b.amount - a.amount)
   }, [currentLedger, transactions, selectedYear, selectedMonthNum])
 
-  // 차트용 데이터 (Top 5 + 기타)
-  const chartData = useMemo(() => {
-    if (expenseByCategory.length === 0) return []
+  // 결제수단 2단계별 지출 분석
+  const expenseByPaymentMethod2 = useMemo(() => {
+    if (!currentLedger) return []
 
-    const top5 = expenseByCategory.slice(0, 5)
-    const others = expenseByCategory.slice(5).reduce((sum, item) => sum + item.amount, 0)
+    const monthExpenses = transactions.filter(
+      (t) =>
+        t.ledgerId === currentLedger.id &&
+        t.type === 'expense' &&
+        t.date.getFullYear() === selectedYear &&
+        t.date.getMonth() === selectedMonthNum - 1
+    )
 
-    const data = top5.map((item) => ({
-      name: item.category,
-      value: item.amount,
-    }))
+    const paymentMethodMap = new Map<string, number>()
+    monthExpenses.forEach((t) => {
+      // paymentMethod2가 있으면 사용, 없으면 "미지정"으로 처리
+      const paymentMethod = t.paymentMethod2 || '미지정'
+      const current = paymentMethodMap.get(paymentMethod) || 0
+      paymentMethodMap.set(paymentMethod, current + t.amount)
+    })
 
-    if (others > 0) {
-      data.push({
-        name: '기타',
-        value: others,
-      })
-    }
+    return Array.from(paymentMethodMap.entries())
+      .map(([paymentMethod, amount]) => ({ paymentMethod, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [currentLedger, transactions, selectedYear, selectedMonthNum])
 
-    return data
-  }, [expenseByCategory])
-
-  // 차트 색상 팔레트
-  const COLORS = [
-    '#0088FE',
-    '#00C49F',
-    '#FFBB28',
-    '#FF8042',
-    '#8884D8',
-    '#82CA9D',
-    '#FFC658',
-    '#FF7C7C',
+  // 막대그래프 색상 팔레트
+  const BAR_COLORS = [
+    '#0088FE', // 파란색
+    '#00C49F', // 청록색
+    '#FFBB28', // 노란색
+    '#FF8042', // 주황색
+    '#8884D8', // 보라색
+    '#82CA9D', // 연두색
+    '#FFC658', // 황금색
+    '#FF7C7C', // 연분홍색
+    '#8DD1E1', // 하늘색
+    '#D0844C', // 갈색
+    '#A4DE6C', // 라임색
+    '#FFB6C1', // 핑크색
   ]
 
   if (redirectElement) {
@@ -159,12 +164,14 @@ export function DashboardPage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {/* 년도/월 선택 */}
-          <MonthPicker
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-            transactions={transactions}
-            ledgerId={ledgerId}
-          />
+          {ledgerId && (
+            <MonthPicker
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              transactions={transactions}
+              ledgerId={ledgerId}
+            />
+          )}
           {canEdit && (
             <Button
               size="lg"
@@ -221,39 +228,40 @@ export function DashboardPage() {
 
       {/* 통계 섹션 */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* 카테고리별 지출 차트 */}
+        {/* 결제수단별 지출 */}
         <Card>
           <CardHeader>
-            <CardTitle>카테고리별 지출</CardTitle>
+            <CardTitle>결제수단별 지출</CardTitle>
           </CardHeader>
           <CardContent>
-            {chartData.length > 0 ? (
+            {expenseByPaymentMethod2.length > 0 ? (
               <div className="space-y-4">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={chartData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
-                      }
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {chartData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {expenseByPaymentMethod2.map((item, index) => {
+                  const percentage = summary.expense > 0 ? (item.amount / summary.expense) * 100 : 0
+                  const barColor = BAR_COLORS[index % BAR_COLORS.length]
+                  return (
+                    <div key={item.paymentMethod}>
+                      <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="font-medium">{item.paymentMethod}</span>
+                        <div className="text-left sm:text-right">
+                          <span className="font-bold">{formatCurrency(item.amount)}</span>
+                          <span className="ml-2 text-sm text-muted-foreground">
+                            ({formatPercent(percentage)})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${percentage}%`, backgroundColor: barColor }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
-              <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+              <div className="flex h-full items-center justify-center text-muted-foreground">
                 지출 데이터가 없습니다
               </div>
             )}
@@ -268,8 +276,9 @@ export function DashboardPage() {
           <CardContent>
             {expenseByCategory.length > 0 ? (
               <div className="space-y-4">
-                {expenseByCategory.map((item) => {
+                {expenseByCategory.map((item, index) => {
                   const percentage = summary.expense > 0 ? (item.amount / summary.expense) * 100 : 0
+                  const barColor = BAR_COLORS[index % BAR_COLORS.length]
                   return (
                     <div key={item.category}>
                       <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -283,8 +292,8 @@ export function DashboardPage() {
                       </div>
                       <div className="h-2 overflow-hidden rounded-full bg-muted">
                         <div
-                          className="h-full rounded-full bg-primary transition-all"
-                          style={{ width: `${percentage}%` }}
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${percentage}%`, backgroundColor: barColor }}
                         />
                       </div>
                     </div>
@@ -299,34 +308,6 @@ export function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* 가계부 정보 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>가계부 정보</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary/10 p-2">
-                <Wallet className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">{currentLedger.name}</h3>
-                <p className="text-sm text-muted-foreground">{currentLedger.description}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{currentLedger.members.length}명의 멤버</span>
-            </div>
-            <Link to="/ledgers">
-              <Button variant="outline" className="w-full">
-                다른 가계부 보기
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

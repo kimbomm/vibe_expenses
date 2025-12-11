@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { Menu, LogOut, Mail } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/authStore'
 import { useInvitationStore } from '@/stores/invitationStore'
+import { useLedgerStore } from '@/stores/ledgerStore'
 
 interface HeaderProps {
   onMenuClick?: () => void
@@ -12,7 +13,9 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const { pendingCount, fetchPendingCount } = useInvitationStore()
+  const { ledgers } = useLedgerStore()
 
   // 대기 초대 개수 조회
   useEffect(() => {
@@ -30,6 +33,24 @@ export function Header({ onMenuClick }: HeaderProps) {
     }
   }
 
+  const handleLogoClick = () => {
+    // URL에서 현재 가계부 ID 추출
+    const ledgerIdFromPath = location.pathname.match(/\/ledgers\/([^/]+)/)?.[1]
+    const lastLedgerId = typeof window !== 'undefined' ? localStorage.getItem('lastLedgerId') : null
+    const currentLedgerId = ledgerIdFromPath || lastLedgerId
+
+    if (currentLedgerId) {
+      // 현재 가계부가 있으면 해당 가계부의 대시보드로 이동
+      navigate(`/ledgers/${currentLedgerId}/dashboard`)
+    } else if (ledgers.length > 0) {
+      // 가계부 목록에서 첫 번째 가계부의 대시보드로 이동
+      navigate(`/ledgers/${ledgers[0].id}/dashboard`)
+    } else {
+      // 가계부가 없으면 가계부 목록으로 이동
+      navigate('/ledgers')
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -37,9 +58,12 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button variant="ghost" size="icon" onClick={onMenuClick} className="md:hidden">
             <Menu className="h-5 w-5" />
           </Button>
-          <Link to="/ledgers" className="text-xl font-bold text-primary">
+          <button
+            onClick={handleLogoClick}
+            className="text-xl font-bold text-primary transition-opacity hover:opacity-80"
+          >
             Vibe
-          </Link>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">

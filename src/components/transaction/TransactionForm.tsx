@@ -17,6 +17,8 @@ interface TransactionFormProps {
   onOpenChange: (open: boolean) => void
   ledgerId: string
   transaction?: Transaction
+  defaultTransaction?: Transaction
+  defaultDate?: Date | null
   onSubmit: (data: Omit<Transaction, 'id' | 'createdAt' | 'createdBy' | 'updatedBy'>) => void
 }
 
@@ -25,6 +27,8 @@ export function TransactionForm({
   onOpenChange,
   ledgerId,
   transaction,
+  defaultTransaction,
+  defaultDate,
   onSubmit,
 }: TransactionFormProps) {
   const isMobile = useIsMobile()
@@ -62,6 +66,8 @@ export function TransactionForm({
         <TransactionFormContent
           ledgerId={ledgerId}
           transaction={transaction}
+          defaultTransaction={defaultTransaction}
+          defaultDate={defaultDate}
           onSubmit={onSubmit}
           onCancel={() => onOpenChange(false)}
         />

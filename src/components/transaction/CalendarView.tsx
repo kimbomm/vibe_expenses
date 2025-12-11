@@ -15,7 +15,7 @@ import { ko } from 'date-fns/locale'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import type { Transaction } from '@/types'
 
 interface CalendarViewProps {
@@ -85,32 +85,42 @@ export function CalendarView({
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
   return (
-    <Card>
-      <div className="p-4">
+    <div className="w-full border-0 bg-background md:rounded-lg md:border">
+      <div className="p-2 md:p-6">
         {/* 헤더 */}
-        <div className="mb-4 flex items-center justify-between">
-          <Button variant="outline" size="icon" onClick={handlePrevMonth}>
-            <ChevronLeft className="h-4 w-4" />
+        <div className="mb-2 flex items-center justify-between md:mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePrevMonth}
+            className="h-9 w-9 rounded-full hover:bg-gray-100"
+          >
+            <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h3 className="text-lg font-semibold">
+          <h3 className="text-xl font-normal text-gray-700">
             {format(currentDate, 'yyyy년 M월', { locale: ko })}
           </h3>
-          <Button variant="outline" size="icon" onClick={handleNextMonth}>
-            <ChevronRight className="h-4 w-4" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleNextMonth}
+            className="h-9 w-9 rounded-full hover:bg-gray-100"
+          >
+            <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
 
         {/* 요일 헤더 */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 border-b pb-0.5 md:pb-2">
           {weekDays.map((day) => (
-            <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
+            <div key={day} className="text-center text-xs font-normal text-gray-500 md:text-sm">
               {day}
             </div>
           ))}
         </div>
 
         {/* 캘린더 그리드 */}
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7">
           {days.map((day) => {
             const summary = getDateSummary(day)
             const isCurrentMonth = isSameMonth(day, currentDate)
@@ -123,35 +133,44 @@ export function CalendarView({
                 key={day.toISOString()}
                 onClick={() => onDateClick?.(day)}
                 className={cn(
-                  'group relative flex min-h-[80px] flex-col rounded-lg border p-2 text-left transition-all hover:bg-accent hover:shadow-sm',
-                  !isCurrentMonth && 'text-muted-foreground opacity-50',
-                  isToday && 'border-primary bg-primary/5 font-semibold',
-                  isWeekSelected && 'border-primary bg-primary/20 shadow-sm ring-2 ring-primary/20'
+                  'group relative flex aspect-[1/1.2] flex-col items-center justify-start border-b border-r border-gray-100 p-0.5 transition-colors md:aspect-square md:p-2',
+                  'hover:bg-gray-50',
+                  !isCurrentMonth && 'bg-gray-50/50 text-gray-400',
+                  isToday && 'bg-blue-50'
                 )}
               >
-                <div className="mb-1 text-sm font-medium">{format(day, 'd')}</div>
-                {hasTransactions && (
-                  <div className="mt-auto space-y-0.5">
-                    {summary.income > 0 && (
-                      <div className="text-[10px] font-medium text-green-600">
-                        +{(summary.income / 1000).toFixed(0)}k
-                      </div>
-                    )}
-                    {summary.expense > 0 && (
-                      <div className="text-[10px] font-medium text-red-600">
-                        -{(summary.expense / 1000).toFixed(0)}k
-                      </div>
-                    )}
-                    {summary.count > 2 && (
-                      <div className="text-[10px] text-muted-foreground">+{summary.count - 2}</div>
-                    )}
-                  </div>
-                )}
+                {/* 날짜 숫자 */}
+                <div
+                  className={cn(
+                    'mb-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-normal transition-colors md:mb-1 md:h-7 md:w-7 md:text-sm',
+                    isToday
+                      ? 'bg-blue-600 font-medium text-white'
+                      : isCurrentMonth
+                        ? 'text-gray-700 group-hover:bg-gray-200'
+                        : 'text-gray-400'
+                  )}
+                >
+                  {format(day, 'd')}
+                </div>
+
+                {/* 거래 금액 표시 - 항상 렌더링하여 높이 일정하게 유지 */}
+                <div className="mt-auto flex min-h-[24px] w-full flex-col justify-end gap-0.5 md:min-h-[28px]">
+                  {summary.income > 0 && (
+                    <div className="truncate text-[9px] font-medium text-green-600 md:text-[11px]">
+                      +{formatCurrency(summary.income)}
+                    </div>
+                  )}
+                  {summary.expense > 0 && (
+                    <div className="truncate text-[9px] font-medium text-red-600 md:text-[11px]">
+                      -{formatCurrency(summary.expense)}
+                    </div>
+                  )}
+                </div>
               </button>
             )
           })}
         </div>
       </div>
-    </Card>
+    </div>
   )
 }

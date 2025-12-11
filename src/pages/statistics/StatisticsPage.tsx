@@ -11,11 +11,8 @@ import { MonthPicker } from '@/components/dashboard/MonthPicker'
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
+  AreaChart,
+  Area,
   ResponsiveContainer,
   XAxis,
   YAxis,
@@ -61,14 +58,6 @@ export function StatisticsPage() {
     fetchTransactionsByMonth(ledgerId, year, month)
   }, [ledgerId, selectedMonth, fetchTransactionsByMonth, currentLedger?.encryptionKey])
 
-  if (!ledgerId) {
-    return <div>가계부를 선택해주세요.</div>
-  }
-
-  if (!currentLedger) {
-    return <div>가계부를 찾을 수 없습니다.</div>
-  }
-
   // 선택한 년도/월 파싱
   const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number)
   const selectedDate = new Date(selectedYear, selectedMonthNum - 1, 1)
@@ -76,6 +65,7 @@ export function StatisticsPage() {
 
   // 현재 월 거래 필터링
   const currentMonthTransactions = useMemo(() => {
+    if (!ledgerId) return []
     return transactions.filter(
       (t) =>
         t.ledgerId === ledgerId &&
@@ -86,6 +76,7 @@ export function StatisticsPage() {
 
   // 전월 거래 필터링
   const prevMonthTransactions = useMemo(() => {
+    if (!ledgerId) return []
     const prevDate = new Date(selectedYear, selectedMonthNum - 2, 1)
     return transactions.filter(
       (t) =>
@@ -97,6 +88,7 @@ export function StatisticsPage() {
 
   // 전년 동월 거래 필터링
   const prevYearMonthTransactions = useMemo(() => {
+    if (!ledgerId) return []
     return transactions.filter(
       (t) =>
         t.ledgerId === ledgerId &&
@@ -158,6 +150,7 @@ export function StatisticsPage() {
 
   // 월별 트렌드 데이터 (최근 6개월)
   const monthlyTrend = useMemo(() => {
+    if (!ledgerId) return []
     const months: Array<{ month: string; income: number; expense: number; balance: number }> = []
     for (let i = 5; i >= 0; i--) {
       const date = new Date(selectedYear, selectedMonthNum - 1 - i, 1)
@@ -183,12 +176,12 @@ export function StatisticsPage() {
     return months
   }, [ledgerId, transactions, selectedYear, selectedMonthNum])
 
-  // 결제수단별 분석
-  const expenseByPaymentMethod = useMemo(() => {
+  // 결제수단 1단계별 분석
+  const expenseByPaymentMethod1 = useMemo(() => {
     const expenses = currentMonthTransactions.filter((t) => t.type === 'expense')
     const methodMap = new Map<string, number>()
     expenses.forEach((t) => {
-      const method = t.paymentMethod1 || '기타'
+      const method = t.paymentMethod1 || '미지정'
       const current = methodMap.get(method) || 0
       methodMap.set(method, current + t.amount)
     })
@@ -197,13 +190,68 @@ export function StatisticsPage() {
       .sort((a, b) => b.amount - a.amount)
   }, [currentMonthTransactions])
 
-  // 수입 카테고리별 분석
-  const incomeByCategory = useMemo(() => {
+  // 결제수단 2단계별 분석
+  const expenseByPaymentMethod2 = useMemo(() => {
+    const expenses = currentMonthTransactions.filter((t) => t.type === 'expense')
+    const methodMap = new Map<string, number>()
+    expenses.forEach((t) => {
+      const method = t.paymentMethod2 || '미지정'
+      const current = methodMap.get(method) || 0
+      methodMap.set(method, current + t.amount)
+    })
+    return Array.from(methodMap.entries())
+      .map(([method, amount]) => ({ method, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [currentMonthTransactions])
+
+  // 지출 카테고리 1단계별 분석
+  const expenseByCategory1 = useMemo(() => {
+    const expenses = currentMonthTransactions.filter((t) => t.type === 'expense')
+    const categoryMap = new Map<string, number>()
+    expenses.forEach((t) => {
+      const current = categoryMap.get(t.category1) || 0
+      categoryMap.set(t.category1, current + t.amount)
+    })
+    return Array.from(categoryMap.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [currentMonthTransactions])
+
+  // 지출 카테고리 2단계별 분석
+  const expenseByCategory2 = useMemo(() => {
+    const expenses = currentMonthTransactions.filter((t) => t.type === 'expense')
+    const categoryMap = new Map<string, number>()
+    expenses.forEach((t) => {
+      const category = `${t.category1} > ${t.category2}`
+      const current = categoryMap.get(category) || 0
+      categoryMap.set(category, current + t.amount)
+    })
+    return Array.from(categoryMap.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [currentMonthTransactions])
+
+  // 수입 카테고리 1단계별 분석
+  const incomeByCategory1 = useMemo(() => {
     const incomes = currentMonthTransactions.filter((t) => t.type === 'income')
     const categoryMap = new Map<string, number>()
     incomes.forEach((t) => {
       const current = categoryMap.get(t.category1) || 0
       categoryMap.set(t.category1, current + t.amount)
+    })
+    return Array.from(categoryMap.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+  }, [currentMonthTransactions])
+
+  // 수입 카테고리 2단계별 분석
+  const incomeByCategory2 = useMemo(() => {
+    const incomes = currentMonthTransactions.filter((t) => t.type === 'income')
+    const categoryMap = new Map<string, number>()
+    incomes.forEach((t) => {
+      const category = `${t.category1} > ${t.category2}`
+      const current = categoryMap.get(category) || 0
+      categoryMap.set(category, current + t.amount)
     })
     return Array.from(categoryMap.entries())
       .map(([category, amount]) => ({ category, amount }))
@@ -227,10 +275,7 @@ export function StatisticsPage() {
         total: data.total,
         average: data.count > 0 ? data.total / data.count : 0,
       }))
-      .sort((a, b) => {
-        const order = ['일', '월', '화', '수', '목', '금', '토']
-        return order.indexOf(a.day) - order.indexOf(b.day)
-      })
+      .sort((a, b) => b.total - a.total)
   }, [currentMonthTransactions])
 
   // Top 거래 내역
@@ -269,17 +314,30 @@ export function StatisticsPage() {
     }
   }, [currentMonthTransactions])
 
-  // 차트 색상 팔레트
-  const COLORS = [
-    '#0088FE',
-    '#00C49F',
-    '#FFBB28',
-    '#FF8042',
-    '#8884D8',
-    '#82CA9D',
-    '#FFC658',
-    '#FF7C7C',
+  // 막대그래프 색상 팔레트
+  const BAR_COLORS = [
+    '#0088FE', // 파란색
+    '#00C49F', // 청록색
+    '#FFBB28', // 노란색
+    '#FF8042', // 주황색
+    '#8884D8', // 보라색
+    '#82CA9D', // 연두색
+    '#FFC658', // 황금색
+    '#FF7C7C', // 연분홍색
+    '#8DD1E1', // 하늘색
+    '#D0844C', // 갈색
+    '#A4DE6C', // 라임색
+    '#FFB6C1', // 핑크색
   ]
+
+  // Early return은 모든 hooks 호출 후에 위치
+  if (!ledgerId) {
+    return <div>가계부를 선택해주세요.</div>
+  }
+
+  if (!currentLedger) {
+    return <div>가계부를 찾을 수 없습니다.</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -443,99 +501,141 @@ export function StatisticsPage() {
         </CardHeader>
         <CardContent>
           {monthlyTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                <Legend />
-                <Line
+            <ResponsiveContainer width="100%" height={350}>
+              <AreaChart data={monthlyTrend} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.5} />
+                <XAxis
+                  dataKey="month"
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="#6b7280"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => {
+                    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`
+                    if (value >= 1000) return `${(value / 1000).toFixed(0)}K`
+                    return value.toString()
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  }}
+                  formatter={(value: number) => formatCurrency(value)}
+                  labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '4px' }}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="circle"
+                  formatter={(value) => (
+                    <span style={{ color: '#374151', fontSize: '14px' }}>{value}</span>
+                  )}
+                />
+                <Area
                   type="monotone"
                   dataKey="income"
                   stroke="#10b981"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorIncome)"
                   name="수입"
+                  dot={{ fill: '#10b981', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
                 />
-                <Line
+                <Area
                   type="monotone"
                   dataKey="expense"
                   stroke="#ef4444"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorExpense)"
                   name="지출"
+                  dot={{ fill: '#ef4444', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
                 />
                 <Line
                   type="monotone"
                   dataKey="balance"
                   stroke="#3b82f6"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   name="순 수입"
+                  dot={{ fill: '#3b82f6', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
                 />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-[300px] items-center justify-center text-muted-foreground">
+            <div className="flex h-[350px] items-center justify-center text-muted-foreground">
               데이터가 없습니다
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 결제수단별 분석 & 수입 카테고리 분석 */}
+      {/* 지출 카테고리별 분석 */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>결제수단별 분석</CardTitle>
+            <CardTitle>지출 카테고리별 분석 (대분류)</CardTitle>
           </CardHeader>
           <CardContent>
-            {expenseByPaymentMethod.length > 0 ? (
-              <div className="space-y-4">
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={expenseByPaymentMethod}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ method, percent }) =>
-                        `${method} ${percent ? (percent * 100).toFixed(0) : 0}%`
-                      }
-                      outerRadius={60}
-                      fill="#8884d8"
-                      dataKey="amount"
-                    >
-                      {expenseByPaymentMethod.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-2">
-                  {expenseByPaymentMethod.map((item) => {
-                    const percentage =
-                      currentSummary.expense > 0 ? (item.amount / currentSummary.expense) * 100 : 0
-                    return (
-                      <div key={item.method}>
-                        <div className="mb-1 flex items-center justify-between text-sm">
-                          <span className="font-medium">{item.method}</span>
-                          <div>
-                            <span className="font-bold">{formatCurrency(item.amount)}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              ({formatPercent(percentage)})
-                            </span>
-                          </div>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            {expenseByCategory1.length > 0 ? (
+              <div className="space-y-2">
+                {expenseByCategory1.map((item, index) => {
+                  const percentage =
+                    currentSummary.expense > 0 ? (item.amount / currentSummary.expense) * 100 : 0
+                  return (
+                    <div key={item.category}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
                           <div
-                            className="h-full rounded-full bg-primary transition-all"
-                            style={{ width: `${percentage}%` }}
+                            className="h-4 w-4 rounded"
+                            style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
                           />
+                          <span className="font-medium">{item.category}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold">{formatCurrency(item.amount)}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatPercent(percentage)})
+                          </span>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center text-muted-foreground">
@@ -547,58 +647,245 @@ export function StatisticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>수입 카테고리별 분석</CardTitle>
+            <CardTitle>지출 카테고리별 분석 (소분류)</CardTitle>
           </CardHeader>
           <CardContent>
-            {incomeByCategory.length > 0 ? (
-              <div className="space-y-4">
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={incomeByCategory}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={(props) => {
-                        const { name, percent } = props
-                        return `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
-                      }}
-                      outerRadius={60}
-                      fill="#8884d8"
-                      dataKey="amount"
-                    >
-                      {incomeByCategory.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="space-y-2">
-                  {incomeByCategory.map((item) => {
-                    const percentage =
-                      currentSummary.income > 0 ? (item.amount / currentSummary.income) * 100 : 0
-                    return (
-                      <div key={item.category}>
-                        <div className="mb-1 flex items-center justify-between text-sm">
-                          <span className="font-medium">{item.category}</span>
-                          <div>
-                            <span className="font-bold">{formatCurrency(item.amount)}</span>
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              ({formatPercent(percentage)})
-                            </span>
-                          </div>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            {expenseByCategory2.length > 0 ? (
+              <div className="space-y-2">
+                {expenseByCategory2.map((item, index) => {
+                  const percentage =
+                    currentSummary.expense > 0 ? (item.amount / currentSummary.expense) * 100 : 0
+                  return (
+                    <div key={item.category}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
                           <div
-                            className="h-full rounded-full bg-green-500 transition-all"
-                            style={{ width: `${percentage}%` }}
+                            className="h-4 w-4 rounded"
+                            style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
                           />
+                          <span className="font-medium">{item.category}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold">{formatCurrency(item.amount)}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatPercent(percentage)})
+                          </span>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+                지출 데이터가 없습니다
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 결제수단별 분석 */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>결제수단별 분석 (1단계)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expenseByPaymentMethod1.length > 0 ? (
+              <div className="space-y-2">
+                {expenseByPaymentMethod1.map((item, index) => {
+                  const percentage =
+                    currentSummary.expense > 0 ? (item.amount / currentSummary.expense) * 100 : 0
+                  return (
+                    <div key={item.method}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-4 w-4 rounded"
+                            style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
+                          />
+                          <span className="font-medium">{item.method}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold">{formatCurrency(item.amount)}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatPercent(percentage)})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+                지출 데이터가 없습니다
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>결제수단별 분석 (2단계)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {expenseByPaymentMethod2.length > 0 ? (
+              <div className="space-y-2">
+                {expenseByPaymentMethod2.map((item, index) => {
+                  const percentage =
+                    currentSummary.expense > 0 ? (item.amount / currentSummary.expense) * 100 : 0
+                  return (
+                    <div key={item.method}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-4 w-4 rounded"
+                            style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
+                          />
+                          <span className="font-medium">{item.method}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold">{formatCurrency(item.amount)}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatPercent(percentage)})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+                지출 데이터가 없습니다
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 수입 카테고리별 분석 */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>수입 카테고리별 분석 (대분류)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incomeByCategory1.length > 0 ? (
+              <div className="space-y-2">
+                {incomeByCategory1.map((item, index) => {
+                  const percentage =
+                    currentSummary.income > 0 ? (item.amount / currentSummary.income) * 100 : 0
+                  return (
+                    <div key={item.category}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-4 w-4 rounded"
+                            style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
+                          />
+                          <span className="font-medium">{item.category}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold text-green-600">
+                            {formatCurrency(item.amount)}
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatPercent(percentage)})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="flex h-[200px] items-center justify-center text-muted-foreground">
+                수입 데이터가 없습니다
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>수입 카테고리별 분석 (소분류)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incomeByCategory2.length > 0 ? (
+              <div className="space-y-2">
+                {incomeByCategory2.map((item, index) => {
+                  const percentage =
+                    currentSummary.income > 0 ? (item.amount / currentSummary.income) * 100 : 0
+                  return (
+                    <div key={item.category}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-4 w-4 rounded"
+                            style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
+                          />
+                          <span className="font-medium">{item.category}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold text-green-600">
+                            {formatCurrency(item.amount)}
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({formatPercent(percentage)})
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="flex h-[200px] items-center justify-center text-muted-foreground">
@@ -617,32 +904,27 @@ export function StatisticsPage() {
           </CardHeader>
           <CardContent>
             {expenseByDayOfWeek.length > 0 ? (
-              <div className="space-y-4">
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={expenseByDayOfWeek}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Bar dataKey="average" fill="#ef4444" name="평균 지출" />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="space-y-2 text-sm">
-                  {expenseByDayOfWeek.map((item) => (
-                    <div key={item.day} className="flex items-center justify-between">
+              <div className="space-y-2 text-sm">
+                {expenseByDayOfWeek.map((item, index) => (
+                  <div key={item.day} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-4 w-4 rounded"
+                        style={{ backgroundColor: BAR_COLORS[index % BAR_COLORS.length] }}
+                      />
                       <span className="font-medium">{item.day}요일</span>
-                      <div className="text-right">
-                        <div className="font-bold">{formatCurrency(item.total)}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.count}건, 평균 {formatCurrency(item.average)}
-                        </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">{formatCurrency(item.total)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {item.count}건, 평균 {formatCurrency(item.average)}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="flex h-[250px] items-center justify-center text-muted-foreground">
+              <div className="flex h-[200px] items-center justify-center text-muted-foreground">
                 지출 데이터가 없습니다
               </div>
             )}

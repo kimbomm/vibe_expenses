@@ -16,17 +16,25 @@ export function useCategories(ledgerId: string) {
     return ledgerCategories || getDefaultCategories()
   }, [ledgerCategories])
 
-  const getIncomeCategory1List = () => Object.keys(categories.income)
-  const getIncomeCategory2List = (category1: string) => categories.income[category1] || []
+  const getIncomeCategory1List = () =>
+    Object.keys(categories.income).sort((a, b) => b.localeCompare(a))
+  const getIncomeCategory2List = (category1: string) =>
+    (categories.income[category1] || []).sort((a, b) => b.localeCompare(a))
 
-  const getExpenseCategory1List = () => Object.keys(categories.expense)
-  const getExpenseCategory2List = (category1: string) => categories.expense[category1] || []
+  const getExpenseCategory1List = () =>
+    Object.keys(categories.expense).sort((a, b) => b.localeCompare(a))
+  const getExpenseCategory2List = (category1: string) =>
+    (categories.expense[category1] || []).sort((a, b) => b.localeCompare(a))
 
-  const getPaymentMethod1List = () => Object.keys(categories.payment)
-  const getPaymentMethod2List = (method1: string) => categories.payment[method1] || []
+  const getPaymentMethod1List = () =>
+    Object.keys(categories.payment).sort((a, b) => b.localeCompare(a))
+  const getPaymentMethod2List = (method1: string) =>
+    (categories.payment[method1] || []).sort((a, b) => b.localeCompare(a))
 
-  const getAssetCategory1List = () => Object.keys(categories.asset)
-  const getAssetCategory2List = (category1: string) => categories.asset[category1] || []
+  const getAssetCategory1List = () =>
+    Object.keys(categories.asset).sort((a, b) => b.localeCompare(a))
+  const getAssetCategory2List = (category1: string) =>
+    (categories.asset[category1] || []).sort((a, b) => b.localeCompare(a))
 
   return {
     getIncomeCategory1List,

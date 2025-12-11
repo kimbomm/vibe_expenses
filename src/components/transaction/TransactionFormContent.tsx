@@ -28,6 +28,8 @@ type TransactionFormData = z.infer<typeof transactionSchema>
 interface TransactionFormContentProps {
   ledgerId: string
   transaction?: Transaction
+  defaultTransaction?: Transaction
+  defaultDate?: Date | null
   onSubmit: (data: Omit<Transaction, 'id' | 'createdAt' | 'createdBy' | 'updatedBy'>) => void
   onCancel: () => void
   showButtons?: boolean
@@ -36,6 +38,8 @@ interface TransactionFormContentProps {
 export function TransactionFormContent({
   ledgerId,
   transaction,
+  defaultTransaction,
+  defaultDate,
   onSubmit,
   onCancel,
   showButtons = true,
@@ -54,7 +58,7 @@ export function TransactionFormContent({
   const categoriesLoaded = !!ledgerCategories
 
   // transaction이 있을 때 기본값 설정
-  const getDefaultValues = (tx?: Transaction): TransactionFormData => {
+  const getDefaultValues = (tx?: Transaction, defaultTx?: Transaction, defaultDt?: Date | null): TransactionFormData => {
     if (tx) {
       return {
         type: tx.type,
@@ -68,10 +72,23 @@ export function TransactionFormContent({
         memo: tx.memo || '',
       }
     }
+    if (defaultTx) {
+      return {
+        type: defaultTx.type,
+        amount: defaultTx.amount,
+        date: formatDateString(defaultTx.date),
+        category1: defaultTx.category1,
+        category2: defaultTx.category2,
+        paymentMethod1: defaultTx.paymentMethod1 || '',
+        paymentMethod2: defaultTx.paymentMethod2 || '',
+        description: defaultTx.description,
+        memo: defaultTx.memo || '',
+      }
+    }
     return {
       type: 'expense',
       amount: 0,
-      date: formatDateString(new Date()),
+      date: defaultDt ? formatDateString(defaultDt) : formatDateString(new Date()),
       category1: '',
       category2: '',
       paymentMethod1: '',
@@ -91,7 +108,7 @@ export function TransactionFormContent({
     formState: { errors },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
-    defaultValues: getDefaultValues(transaction),
+    defaultValues: getDefaultValues(transaction, defaultTransaction, defaultDate),
   })
 
   const type = watch('type')
@@ -99,15 +116,21 @@ export function TransactionFormContent({
   const paymentMethod1 = watch('paymentMethod1')
 
   // 이전 값 추적 (초기 로드 시 초기화 방지)
-  const prevCategory1Ref = useRef<string | undefined>(undefined)
-  const prevPaymentMethod1Ref = useRef<string | undefined>(undefined)
+  const prevCategory1Ref = useRef<string | undefined>(
+    transaction?.category1 || defaultTransaction?.category1
+  )
+  const prevPaymentMethod1Ref = useRef<string | undefined>(
+    transaction?.paymentMethod1 || defaultTransaction?.paymentMethod1
+  )
   const isInitializedRef = useRef(false)
   const prevTransactionIdRef = useRef<string | undefined>(undefined)
   const categoryValuesSetRef = useRef<string | undefined>(undefined)
 
   // 금액 표시용 상태 (포맷팅된 문자열)
   const [amountDisplay, setAmountDisplay] = useState<string>(
-    transaction?.amount ? formatNumber(transaction.amount) : ''
+    transaction?.amount || defaultTransaction?.amount
+      ? formatNumber(transaction?.amount || defaultTransaction?.amount || 0)
+      : ''
   )
 
   // 금액 입력 핸들러
@@ -141,11 +164,28 @@ export function TransactionFormContent({
         setAmountDisplay(transaction.amount > 0 ? formatNumber(transaction.amount) : '')
         prevCategory1Ref.current = transaction.category1
         prevPaymentMethod1Ref.current = transaction.paymentMethod1 || ''
+      } else if (defaultTransaction) {
+        // 복사 모드 (추가 모드)
+        const defaultValues: TransactionFormData = {
+          type: defaultTransaction.type,
+          amount: defaultTransaction.amount,
+          date: formatDateString(defaultTransaction.date),
+          category1: defaultTransaction.category1,
+          category2: defaultTransaction.category2,
+          paymentMethod1: defaultTransaction.paymentMethod1 || '',
+          paymentMethod2: defaultTransaction.paymentMethod2 || '',
+          description: defaultTransaction.description,
+          memo: defaultTransaction.memo || '',
+        }
+        reset(defaultValues)
+        setAmountDisplay(defaultTransaction.amount > 0 ? formatNumber(defaultTransaction.amount) : '')
+        prevCategory1Ref.current = defaultTransaction.category1
+        prevPaymentMethod1Ref.current = defaultTransaction.paymentMethod1 || ''
       } else {
         const defaultValues: TransactionFormData = {
           type: 'expense',
           amount: 0,
-          date: formatDateString(new Date()),
+          date: defaultDate ? formatDateString(defaultDate) : formatDateString(new Date()),
           category1: '',
           category2: '',
           paymentMethod1: '',
@@ -164,7 +204,7 @@ export function TransactionFormContent({
       // transaction이 변경되면 categoryValuesSetRef도 초기화
       categoryValuesSetRef.current = undefined
     }
-  }, [transaction?.id, reset])
+  }, [transaction?.id, defaultTransaction, defaultDate, reset])
 
   // 카테고리가 로드된 후 셀렉트 박스 값 설정 (한 번만 실행)
   useEffect(() => {

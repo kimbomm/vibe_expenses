@@ -88,10 +88,10 @@ export function LedgerFormContent({
       <div className="space-y-2">
         <Label htmlFor="currency">통화 *</Label>
         <Select id="currency" {...register('currency')} disabled>
-          <option value="KRW">KRW (원)</option>
           <option value="USD">USD (달러)</option>
-          <option value="EUR">EUR (유로)</option>
+          <option value="KRW">KRW (원)</option>
           <option value="JPY">JPY (엔)</option>
+          <option value="EUR">EUR (유로)</option>
         </Select>
         {errors.currency && <p className="text-sm text-red-500">{errors.currency.message}</p>}
       </div>

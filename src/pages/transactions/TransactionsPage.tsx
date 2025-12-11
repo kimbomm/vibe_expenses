@@ -6,14 +6,13 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownRight,
-  Calendar,
-  List,
   Edit,
   Trash2,
   Upload,
   Download,
+  Copy,
 } from 'lucide-react'
-import { startOfWeek, endOfWeek, isSameDay, format } from 'date-fns'
+import { isSameDay, format } from 'date-fns'
 import { useTransactionStore } from '@/stores/transactionStore'
 import { useLedgerStore } from '@/stores/ledgerStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -26,18 +25,16 @@ import { ImportTransactionModal } from '@/components/import/ImportTransactionMod
 import { ExportTransactionModal } from '@/components/export/ExportTransactionModal'
 import type { Transaction } from '@/types'
 
-type DateFilter = 'day' | 'week' | 'month' | null
-
 export function TransactionsPage() {
   const { ledgerId } = useParams()
-  const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all')
-  const [dateFilter, setDateFilter] = useState<DateFilter>('month')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [defaultDate, setDefaultDate] = useState<Date | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>()
+  const [defaultTransaction, setDefaultTransaction] = useState<Transaction | undefined>()
 
   const { user } = useAuthStore()
   const { canEdit } = useLedgerPermission(ledgerId)
@@ -81,71 +78,28 @@ export function TransactionsPage() {
     fetchTransactionsByMonth(ledgerId, year, month)
   }, [ledgerId, currentMonth, fetchTransactionsByMonth, currentLedger?.encryptionKey])
 
-  // 필터링된 거래 목록 (캘린더용)
+  // 필터링된 거래 목록 (캘린더용) - currentMonth 기준으로 필터링
   const allFilteredTransactions = useMemo(() => {
     if (!ledgerId) return []
-    let filtered = storeTransactions
 
-    // 타입 필터
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter((t) => t.type === typeFilter)
-    }
+    return storeTransactions.filter((t) => {
+      const transactionDate = new Date(t.date)
+      return (
+        transactionDate.getFullYear() === currentMonth.getFullYear() &&
+        transactionDate.getMonth() === currentMonth.getMonth()
+      )
+    })
+  }, [ledgerId, currentMonth, storeTransactions])
 
-    // 날짜 필터
-    if (dateFilter !== null) {
-      const now = new Date()
-      filtered = filtered.filter((t) => {
-        const transactionDate = new Date(t.date)
-
-        switch (dateFilter) {
-          case 'day':
-            return isSameDay(transactionDate, now)
-          case 'week': {
-            const weekStart = startOfWeek(now, { weekStartsOn: 0 })
-            const weekEnd = endOfWeek(now, { weekStartsOn: 0 })
-            return transactionDate >= weekStart && transactionDate <= weekEnd
-          }
-          case 'month':
-            return (
-              transactionDate.getFullYear() === now.getFullYear() &&
-              transactionDate.getMonth() === now.getMonth()
-            )
-          default:
-            return true
-        }
-      })
-    } else {
-      // 필터가 없을 때는 currentMonth 기준으로 필터링
-      filtered = filtered.filter((t) => {
-        const transactionDate = new Date(t.date)
-        return (
-          transactionDate.getFullYear() === currentMonth.getFullYear() &&
-          transactionDate.getMonth() === currentMonth.getMonth()
-        )
-      })
-    }
-
-    return filtered
-  }, [ledgerId, typeFilter, dateFilter, currentMonth, storeTransactions])
-
-  // 선택된 날짜의 거래 목록 (일 단위 필터 또는 날짜 클릭 시)
+  // 선택된 날짜의 거래 목록 (날짜 클릭 시)
   const transactions = useMemo(() => {
-    if (dateFilter === 'day' || selectedDate) {
-      const targetDate = selectedDate || new Date()
+    if (selectedDate) {
       return allFilteredTransactions
-        .filter((t) => isSameDay(new Date(t.date), targetDate))
+        .filter((t) => isSameDay(new Date(t.date), selectedDate))
         .sort((a, b) => b.date.getTime() - a.date.getTime())
     }
     return allFilteredTransactions.sort((a, b) => b.date.getTime() - a.date.getTime())
-  }, [allFilteredTransactions, dateFilter, selectedDate])
-
-  // 주 단위 필터 선택 시 해당 주의 시작일
-  const selectedWeekStart = useMemo(() => {
-    if (dateFilter === 'week') {
-      return startOfWeek(new Date(), { weekStartsOn: 0 })
-    }
-    return null
-  }, [dateFilter])
+  }, [allFilteredTransactions, selectedDate])
 
   return (
     <div className="space-y-6">
@@ -162,6 +116,13 @@ export function TransactionsPage() {
                 className="w-full sm:w-auto"
                 onClick={() => {
                   setEditingTransaction(undefined)
+                  setDefaultTransaction(undefined)
+                  // selectedDate가 있으면 그것을 기본값으로 사용, 없으면 오늘 날짜
+                  if (selectedDate) {
+                    setDefaultDate(selectedDate)
+                  } else {
+                    setDefaultDate(new Date())
+                  }
                   setFormOpen(true)
                 }}
               >
@@ -195,111 +156,35 @@ export function TransactionsPage() {
         </div>
       </div>
 
-      {/* 필터 */}
-      <div className="space-y-3">
-        {/* 타입 필터 */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">타입:</span>
-          <Button
-            variant={typeFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter('all')}
-          >
-            전체
-          </Button>
-          <Button
-            variant={typeFilter === 'income' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter('income')}
-          >
-            수입
-          </Button>
-          <Button
-            variant={typeFilter === 'expense' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTypeFilter('expense')}
-          >
-            지출
-          </Button>
+      {/* 캘린더 뷰 또는 리스트 뷰 */}
+      {!selectedDate ? (
+        <div className="-mx-4 md:mx-0">
+          <CalendarView
+            transactions={allFilteredTransactions}
+            currentDate={currentMonth}
+            onDateChange={(date) => {
+              setCurrentMonth(date)
+            }}
+            onDateClick={(date) => {
+              setSelectedDate(date)
+              setDefaultDate(date) // 날짜 클릭 시 기본 날짜로 저장
+            }}
+          />
         </div>
-
-        {/* 날짜 필터 */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">기간:</span>
-          <Button
-            variant={dateFilter === 'month' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setDateFilter('month')
-              setSelectedDate(null)
-              setCurrentMonth(new Date()) // 현재 월로 리셋
-            }}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            이번 달
-          </Button>
-          <Button
-            variant={dateFilter === 'week' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setDateFilter('week')
-              setSelectedDate(null)
-              setCurrentMonth(new Date()) // 현재 월로 리셋
-            }}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            이번 주
-          </Button>
-          <Button
-            variant={dateFilter === 'day' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => {
-              setDateFilter('day')
-              setSelectedDate(new Date())
-              setCurrentMonth(new Date()) // 현재 월로 리셋
-            }}
-          >
-            <List className="mr-2 h-4 w-4" />
-            오늘
-          </Button>
-        </div>
-      </div>
-
-      {/* 캘린더 뷰 (월/주 필터) 또는 리스트 뷰 (일 필터) */}
-      {(dateFilter === 'month' || dateFilter === 'week' || dateFilter === null) && !selectedDate ? (
-        <CalendarView
-          transactions={allFilteredTransactions}
-          currentDate={currentMonth}
-          onDateChange={(date) => {
-            setCurrentMonth(date)
-            setDateFilter(null) // 월 조정 시 필터 비활성화
-          }}
-          selectedWeek={selectedWeekStart}
-          onDateClick={(date) => {
-            setSelectedDate(date)
-          }}
-        />
       ) : (
         <>
-          {selectedDate && (
-            <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
-              <h3 className="font-semibold">{format(selectedDate, 'yyyy년 M월 d일')} 거래 내역</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedDate(null)
-                }}
-              >
-                캘린더로 돌아가기
-              </Button>
-            </div>
-          )}
-          {dateFilter === 'day' && !selectedDate && (
-            <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
-              <h3 className="font-semibold">오늘 거래 내역</h3>
-            </div>
-          )}
+          <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+            <h3 className="font-semibold">{format(selectedDate, 'yyyy년 M월 d일')} 거래 내역</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedDate(null)
+              }}
+            >
+              캘린더로 돌아가기
+            </Button>
+          </div>
           {/* 거래 목록 */}
           <div className="space-y-4">
             {transactions.length === 0 ? (
@@ -308,9 +193,9 @@ export function TransactionsPage() {
               </Card>
             ) : (
               transactions.map((transaction) => (
-                <Card key={transaction.id} className="relative p-4">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 flex-1 items-center gap-4">
+                <Card key={transaction.id} className="relative p-3 sm:p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
                       <div
                         className={cn(
                           'flex-shrink-0 rounded-lg p-2',
@@ -338,6 +223,11 @@ export function TransactionsPage() {
                             </>
                           )}
                         </div>
+                        {transaction.memo && (
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {transaction.memo}
+                          </div>
+                        )}
                         {transaction.createdBy && (
                           <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                             {(() => {
@@ -356,8 +246,8 @@ export function TransactionsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-shrink-0 text-left sm:text-right">
+                    <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-2">
+                      <div className="flex-shrink-0 text-right">
                         <div
                           className={cn(
                             'text-lg font-bold',
@@ -372,12 +262,14 @@ export function TransactionsPage() {
                         </div>
                       </div>
                       {canEdit && transaction.createdBy === user?.uid && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 sm:flex-shrink-0">
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 sm:h-10 sm:w-10"
                             onClick={() => {
                               setEditingTransaction(transaction)
+                              setDefaultTransaction(undefined)
                               setFormOpen(true)
                             }}
                           >
@@ -386,6 +278,20 @@ export function TransactionsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 sm:h-10 sm:w-10"
+                            onClick={() => {
+                              setDefaultTransaction(transaction)
+                              setEditingTransaction(undefined)
+                              setFormOpen(true)
+                            }}
+                            title="복사"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 sm:h-10 sm:w-10"
                             onClick={async () => {
                               if (confirm('정말 삭제하시겠습니까?')) {
                                 try {
@@ -403,11 +309,6 @@ export function TransactionsPage() {
                       )}
                     </div>
                   </div>
-                  {transaction.memo && (
-                    <div className="mt-3 pl-14 text-sm text-muted-foreground">
-                      {transaction.memo}
-                    </div>
-                  )}
                 </Card>
               ))
             )}
@@ -420,9 +321,18 @@ export function TransactionsPage() {
         <>
           <TransactionForm
             open={formOpen}
-            onOpenChange={setFormOpen}
+            onOpenChange={(open) => {
+              setFormOpen(open)
+              if (!open) {
+                // 폼이 닫힐 때 defaultDate, defaultTransaction 초기화
+                setDefaultDate(null)
+                setDefaultTransaction(undefined)
+              }
+            }}
             ledgerId={ledgerId}
             transaction={editingTransaction}
+            defaultTransaction={defaultTransaction}
+            defaultDate={defaultDate}
             onSubmit={async (data) => {
               if (!user) return
 
@@ -432,8 +342,21 @@ export function TransactionsPage() {
                 } else {
                   await addTransaction(data, user.uid)
                 }
+
+                // 저장된 거래의 날짜로 이동
+                const savedDate = data.date instanceof Date ? data.date : new Date(data.date)
+                setSelectedDate(savedDate)
+                setCurrentMonth(new Date(savedDate.getFullYear(), savedDate.getMonth(), 1))
+
+                // 해당 월의 거래내역 다시 조회
+                const year = savedDate.getFullYear()
+                const month = savedDate.getMonth() + 1
+                fetchTransactionsByMonth(ledgerId, year, month)
+
                 setFormOpen(false)
                 setEditingTransaction(undefined)
+                setDefaultTransaction(undefined)
+                setDefaultDate(null)
               } catch (error) {
                 console.error('거래 저장 실패:', error)
                 alert('거래 저장에 실패했습니다.')
