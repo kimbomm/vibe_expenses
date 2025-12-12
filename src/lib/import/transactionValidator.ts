@@ -81,13 +81,20 @@ function validatePaymentMethod(
 export function validateTransactionRow(
   row: ImportRow,
   rowIndex: number,
-  categories: LedgerCategories
+  categories: LedgerCategories,
+  options?: { skipCategoryValidation?: boolean }
 ): {
   valid: boolean
   errors: ValidationError[]
   transaction?: ValidatedTransaction
 } {
+  const skipCategoryValidation = options?.skipCategoryValidation ?? false
   const errors: ValidationError[] = []
+
+  // 디버깅: 마이그레이션 모드 확인
+  if (skipCategoryValidation) {
+    console.log('[Migration Mode] 카테고리/결제수단 검증 건너뛰기')
+  }
 
   // 타입 검증
   const type = normalizeType(row.type)
@@ -161,8 +168,8 @@ export function validateTransactionRow(
     })
   }
 
-  // 카테고리 존재 여부 확인
-  if (type && category1 && category2) {
+  // 카테고리 존재 여부 확인 (마이그레이션 모드에서는 건너뛰기)
+  if (!skipCategoryValidation && type && category1 && category2) {
     if (!validateCategory(category1, category2, type, categories)) {
       errors.push({
         row: rowIndex,
@@ -182,7 +189,7 @@ export function validateTransactionRow(
     })
   }
 
-  // 결제수단 검증 (지출일 때만)
+  // 결제수단 검증 (지출일 때만, 마이그레이션 모드에서는 건너뛰기)
   let paymentMethod1: string | undefined
   let paymentMethod2: string | undefined
   if (type === 'expense') {
@@ -192,7 +199,10 @@ export function validateTransactionRow(
         if (row.paymentMethod2) {
           paymentMethod2 = typeof row.paymentMethod2 === 'string' ? row.paymentMethod2.trim() : ''
           if (paymentMethod2) {
-            if (!validatePaymentMethod(paymentMethod1, paymentMethod2, categories)) {
+            if (
+              !skipCategoryValidation &&
+              !validatePaymentMethod(paymentMethod1, paymentMethod2, categories)
+            ) {
               errors.push({
                 row: rowIndex,
                 field: 'paymentMethod',
@@ -236,7 +246,8 @@ export function validateTransactionRow(
  */
 export function validateTransactionRows(
   rows: ImportRow[],
-  categories: LedgerCategories
+  categories: LedgerCategories,
+  options?: { skipCategoryValidation?: boolean }
 ): {
   valid: ValidatedTransaction[]
   invalid: Array<{ row: number; errors: ValidationError[] }>
@@ -245,7 +256,7 @@ export function validateTransactionRows(
   const invalid: Array<{ row: number; errors: ValidationError[] }> = []
 
   rows.forEach((row, index) => {
-    const result = validateTransactionRow(row, index, categories)
+    const result = validateTransactionRow(row, index, categories, options)
     if (result.valid && result.transaction) {
       valid.push(result.transaction)
     } else {

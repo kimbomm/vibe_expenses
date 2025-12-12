@@ -125,7 +125,15 @@ export function ImportTransactionContent({ ledgerId, onCancel }: ImportTransacti
 
     setValidating(true)
     try {
-      const result = validateTransactionRows(parsedRows, categories)
+      // 마이그레이션 모드: 카테고리/결제수단 검증 건너뛰기
+      console.log('[Import] 마이그레이션 모드로 검증 시작 (카테고리/결제수단 검증 건너뛰기)')
+      const result = validateTransactionRows(parsedRows, categories, {
+        skipCategoryValidation: true,
+      })
+      console.log('[Import] 검증 완료:', {
+        valid: result.valid.length,
+        invalid: result.invalid.length,
+      })
       setValidTransactions(result.valid)
       setInvalidRows(result.invalid)
     } catch (error) {
