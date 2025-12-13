@@ -42,11 +42,25 @@ export function TransactionForm({
         ? `/ledgers/${ledgerId}/transactions/${transaction.id}/edit`
         : `/ledgers/${ledgerId}/transactions/new`
       navigate(path, {
-        state: { returnPath: location.pathname },
+        state: {
+          returnPath: location.pathname,
+          defaultDate: defaultDate,
+          defaultTransaction: defaultTransaction,
+        },
       })
       onOpenChange(false)
     }
-  }, [open, isMobile, ledgerId, transaction, navigate, location.pathname, onOpenChange])
+  }, [
+    open,
+    isMobile,
+    ledgerId,
+    transaction,
+    defaultDate,
+    defaultTransaction,
+    navigate,
+    location.pathname,
+    onOpenChange,
+  ])
 
   // 모바일이면 모달을 렌더링하지 않음
   if (isMobile || !open) {
