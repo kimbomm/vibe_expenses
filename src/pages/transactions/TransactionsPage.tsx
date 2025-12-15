@@ -1,7 +1,9 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 import {
   Plus,
   ArrowUpRight,
@@ -30,6 +32,7 @@ export function TransactionsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [defaultDate, setDefaultDate] = useState<Date | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
@@ -69,6 +72,45 @@ export function TransactionsPage() {
     return member || null
   }
 
+  // 필터용 멤버 목록 (소유자 + 멤버)
+  const filterMembers = useMemo(() => {
+    if (!currentLedger) return []
+
+    const members: Array<{ userId: string; name: string; isOwner: boolean }> = []
+
+    // 소유자 추가
+    const ownerMember = currentLedger.members.find((m) => m.userId === currentLedger.ownerId)
+    if (ownerMember) {
+      members.push({
+        userId: currentLedger.ownerId,
+        name: ownerMember.name,
+        isOwner: true,
+      })
+    }
+
+    // 일반 멤버 추가 (소유자 제외)
+    currentLedger.members.forEach((member) => {
+      if (member.userId !== currentLedger.ownerId) {
+        members.push({
+          userId: member.userId,
+          name: member.name,
+          isOwner: false,
+        })
+      }
+    })
+
+    return members
+  }, [currentLedger])
+
+  // ledgerId 변경 시 필터 초기화
+  const prevLedgerIdRef = useRef<string | undefined>(ledgerId)
+  useEffect(() => {
+    if (prevLedgerIdRef.current !== ledgerId && prevLedgerIdRef.current !== undefined) {
+      setSelectedUserId(null)
+    }
+    prevLedgerIdRef.current = ledgerId
+  }, [ledgerId])
+
   // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
   useEffect(() => {
     if (!ledgerId || !currentLedger?.encryptionKey) return
@@ -78,18 +120,22 @@ export function TransactionsPage() {
     fetchTransactionsByMonth(ledgerId, year, month)
   }, [ledgerId, currentMonth, fetchTransactionsByMonth, currentLedger?.encryptionKey])
 
-  // 필터링된 거래 목록 (캘린더용) - currentMonth 기준으로 필터링
+  // 필터링된 거래 목록 (캘린더용) - currentMonth + 작성자 기준으로 필터링
   const allFilteredTransactions = useMemo(() => {
     if (!ledgerId) return []
 
     return storeTransactions.filter((t) => {
       const transactionDate = new Date(t.date)
-      return (
+      const monthMatch =
         transactionDate.getFullYear() === currentMonth.getFullYear() &&
         transactionDate.getMonth() === currentMonth.getMonth()
-      )
+
+      // 작성자 필터 적용
+      const userMatch = selectedUserId === null || t.createdBy === selectedUserId
+
+      return monthMatch && userMatch
     })
-  }, [ledgerId, currentMonth, storeTransactions])
+  }, [ledgerId, currentMonth, storeTransactions, selectedUserId])
 
   // 선택된 날짜의 거래 목록 (날짜 클릭 시)
   const transactions = useMemo(() => {
@@ -155,6 +201,31 @@ export function TransactionsPage() {
           </Button>
         </div>
       </div>
+
+      {/* 작성자 필터 */}
+      {currentLedger && filterMembers.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <Label htmlFor="user-filter" className="text-sm font-medium">
+            작성자 필터
+          </Label>
+          <Select
+            id="user-filter"
+            value={selectedUserId || ''}
+            onChange={(e) => {
+              setSelectedUserId(e.target.value === '' ? null : e.target.value)
+            }}
+            className="w-full sm:w-[200px]"
+          >
+            <option value="">전체</option>
+            {filterMembers.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.name}
+                {member.isOwner && ' (소유자)'}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
 
       {/* 캘린더 뷰 또는 리스트 뷰 */}
       {!selectedDate ? (
