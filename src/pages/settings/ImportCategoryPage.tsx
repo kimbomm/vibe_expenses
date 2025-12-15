@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { ImportCategoryContent } from '@/components/import/ImportCategoryContent'
+import { ImportCategoryContent } from '@/features/category-import'
 
 export function ImportCategoryPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
 import { Plus, Wallet, Users, Edit, Trash2, Settings2, Share2 } from 'lucide-react'
-import { useLedgerStore } from '@/stores/ledgerStore'
-import { useAuthStore } from '@/stores/authStore'
-import { formatDateString } from '@/lib/utils'
-import { LedgerForm } from '@/components/ledger/LedgerForm'
-import type { Ledger } from '@/types'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { useAuthStore } from '@/entities/user/model/store'
+import { formatDateString } from '@/shared/lib/utils'
+import { LedgerForm } from '@/features/ledger-create'
+import type { Ledger } from '@/shared/types'
 
 export function LedgersPage() {
   const [formOpen, setFormOpen] = useState(false)

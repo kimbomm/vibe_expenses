@@ -1,13 +1,13 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useLedgerStore } from '@/stores/ledgerStore'
-import { useTransactionStore } from '@/stores/transactionStore'
-import type { Transaction } from '@/types'
-import { formatCurrency, formatPercent } from '@/lib/utils'
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { useTransactionStore } from '@/entities/transaction/model/store'
+import type { Transaction } from '@/shared/types'
+import { formatCurrency, formatPercent } from '@/shared/lib/utils'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import { MonthPicker } from '@/components/dashboard/MonthPicker'
+import { MonthPicker } from '@/widgets/dashboard-summary/ui/MonthPicker'
 import {
   LineChart,
   Line,

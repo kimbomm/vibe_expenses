@@ -1,12 +1,12 @@
 import { useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { AssetFormContent } from '@/components/asset/AssetFormContent'
-import { useAssetStore } from '@/stores/assetStore'
-import { useAuthStore } from '@/stores/authStore'
-import { useLedgerStore } from '@/stores/ledgerStore'
-import type { Asset } from '@/types'
+import { AssetFormContent } from '@/features/asset-create'
+import { useAssetStore } from '@/entities/asset/model/store'
+import { useAuthStore } from '@/entities/user/model/store'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import type { Asset } from '@/shared/types'
 
 export function AssetFormPage() {
   const { ledgerId, assetId } = useParams<{

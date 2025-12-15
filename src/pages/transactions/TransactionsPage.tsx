@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
+import { Card } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
+import { Select } from '@/shared/ui/select'
+import { Label } from '@/shared/ui/label'
 import {
   Plus,
   ArrowUpRight,
@@ -15,17 +15,17 @@ import {
   Copy,
 } from 'lucide-react'
 import { isSameDay, format } from 'date-fns'
-import { useTransactionStore } from '@/stores/transactionStore'
-import { useLedgerStore } from '@/stores/ledgerStore'
-import { useAuthStore } from '@/stores/authStore'
-import { useLedgerPermission } from '@/hooks/useLedgerPermission'
-import { formatCurrency, formatDateString } from '@/lib/utils'
-import { cn } from '@/lib/utils'
-import { CalendarView } from '@/components/transaction/CalendarView'
-import { TransactionForm } from '@/components/transaction/TransactionForm'
-import { ImportTransactionModal } from '@/components/import/ImportTransactionModal'
-import { ExportTransactionModal } from '@/components/export/ExportTransactionModal'
-import type { Transaction } from '@/types'
+import { useTransactionStore } from '@/entities/transaction/model/store'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { useAuthStore } from '@/entities/user/model/store'
+import { useLedgerPermission } from '@/shared/hooks/useLedgerPermission'
+import { formatCurrency, formatDateString } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
+import { CalendarView } from '@/widgets/transaction-calendar'
+import { TransactionForm } from '@/features/transaction-create'
+import { ImportTransactionModal } from '@/features/transaction-import'
+import { ExportTransactionModal } from '@/features/transaction-export'
+import type { Transaction } from '@/shared/types'
 
 export function TransactionsPage() {
   const { ledgerId } = useParams()

@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { useAuthStore } from '@/stores/authStore'
-import { useInvitationStore } from '@/stores/invitationStore'
-import { formatDateString } from '@/lib/utils'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
+import { useAuthStore } from '@/entities/user/model/store'
+import { useInvitationStore } from '@/entities/invitation/model/store'
+import { formatDateString } from '@/shared/lib/utils'
 import { User, Mail, ChevronRight } from 'lucide-react'
 
 export function SettingsPage() {

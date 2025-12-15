@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { ExportAssetContent } from '@/components/export/ExportAssetContent'
+import { ExportAssetContent } from '@/features/asset-export'
 
 export function ExportAssetPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()

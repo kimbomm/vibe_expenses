@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { LedgerFormContent } from '@/components/ledger/LedgerFormContent'
-import { useLedgerStore } from '@/stores/ledgerStore'
-import { useAuthStore } from '@/stores/authStore'
-import type { Ledger } from '@/types'
+import { LedgerFormContent } from '@/features/ledger-create'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { useAuthStore } from '@/entities/user/model/store'
+import type { Ledger } from '@/shared/types'
 
 export function LedgerFormPage() {
   const { ledgerId } = useParams<{ ledgerId?: string }>()

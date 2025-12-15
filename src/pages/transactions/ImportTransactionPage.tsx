@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { ImportTransactionContent } from '@/components/import/ImportTransactionContent'
+import { ImportTransactionContent } from '@/features/transaction-import'
 
 export function ImportTransactionPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()

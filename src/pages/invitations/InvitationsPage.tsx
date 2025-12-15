@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
 import { Mail, Check, X, Clock, CheckCircle, XCircle, Users, Loader2 } from 'lucide-react'
-import { useAuthStore } from '@/stores/authStore'
-import { useInvitationStore } from '@/stores/invitationStore'
-import { useLedgerStore } from '@/stores/ledgerStore'
-import { formatDateString } from '@/lib/utils'
-import type { MemberRole } from '@/types'
+import { useAuthStore } from '@/entities/user/model/store'
+import { useInvitationStore } from '@/entities/invitation/model/store'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { formatDateString } from '@/shared/lib/utils'
+import type { MemberRole } from '@/shared/types'
 
 export function InvitationsPage() {
   const { user } = useAuthStore()

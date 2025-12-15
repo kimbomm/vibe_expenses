@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { ArrowLeft } from 'lucide-react'
-import { TransactionFormContent } from '@/components/transaction/TransactionFormContent'
-import { useTransactionStore } from '@/stores/transactionStore'
-import { useLedgerStore } from '@/stores/ledgerStore'
-import { useAuthStore } from '@/stores/authStore'
-import type { Transaction } from '@/types'
+import { TransactionFormContent } from '@/features/transaction-create'
+import { useTransactionStore } from '@/entities/transaction/model/store'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { useAuthStore } from '@/entities/user/model/store'
+import type { Transaction } from '@/shared/types'
 
 export function TransactionFormPage() {
   const { ledgerId, transactionId } = useParams<{

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { Upload } from 'lucide-react'
-import { CategoryManager } from '@/components/settings/CategoryManager'
-import { useCategoryStore } from '@/stores/categoryStore'
-import { ImportCategoryModal } from '@/components/import/ImportCategoryModal'
-import { useLedgerPermission } from '@/hooks/useLedgerPermission'
+import { CategoryManager } from '@/features/category-manage'
+import { useCategoryStore } from '@/entities/category/model/store'
+import { ImportCategoryModal } from '@/features/category-import'
+import { useLedgerPermission } from '@/shared/hooks/useLedgerPermission'
 
 export function CategoriesPage() {
   const { ledgerId } = useParams<{ ledgerId: string }>()
