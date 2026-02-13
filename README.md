@@ -1,203 +1,141 @@
-# 🏦 Vibe - 스마트 가계부
+# Vibe - 스마트 가계부
 
-반응형 웹 기반 개인/공유 가계부 애플리케이션
+Firebase 기반 개인/공유 가계부 웹앱입니다.
 
-## 🚀 기술 스택
+이 문서는 **현재 코드 기준**으로 작성되었습니다.
 
-### Frontend
+## 핵심 기능
 
-- **React 19** - UI 라이브러리
-- **TypeScript** - 타입 안정성
-- **Vite** - 빌드 도구 (빠른 HMR)
-- **React Router v7** - 클라이언트 라우팅
-- **Tailwind CSS** - 유틸리티 우선 CSS
-- **Lucide React** - 아이콘
+- Google 로그인 (Firebase Auth)
+- 가계부(Room) 생성/수정/삭제
+- 멤버 초대/수락/거절/취소
+- 멤버 권한 관리 (`owner` / `editor` / `viewer`)
+- 거래내역 CRUD (월별 서브컬렉션 구조)
+- 자산 CRUD + 자산 변경 로그
+- 가계부별 2단계 카테고리 관리
+- 거래 엑셀 업로드 (`.xlsx`, `.xls`)
+- 거래/자산 엑셀 내보내기 (`.xlsx`)
+- 대시보드/통계 시각화 (Recharts)
+- 민감 데이터 클라이언트 암호화 (AES-256-GCM)
+- 반응형 UI + PWA 기초(Service Worker 등록)
 
-### 상태 관리
+## 기술 스택
 
-- **Zustand** - 글로벌 상태 (구현 완료)
-- **TanStack Query** - 서버 상태 (예정)
+- React 19 + TypeScript + Vite
+- React Router v7
+- Zustand
+- React Hook Form + Zod
+- Tailwind CSS
+- Firebase Auth / Firestore
+- Recharts
+- xlsx
 
-### 폼 & 유효성 검사
+## 실제 프로젝트 구조
 
-- **React Hook Form** - 폼 관리 (구현 완료)
-- **Zod** - 스키마 유효성 검사 (구현 완료)
-
-### 차트
-
-- **Recharts** - 데이터 시각화 (예정)
-
-### 기타
-
-- **date-fns** - 날짜 처리
-- **clsx + tailwind-merge** - 클래스 병합
-
-## 📁 프로젝트 구조
-
-```
+```text
 src/
-├── components/        # React 컴포넌트
-│   ├── ui/           # 기본 UI 컴포넌트 (Button, Card 등)
-│   ├── layout/       # 레이아웃 컴포넌트 (Header, Sidebar 등)
-│   ├── ledger/       # 가계부 관련 컴포넌트
-│   ├── transaction/  # 거래 관련 컴포넌트
-│   ├── asset/        # 자산 관련 컴포넌트
-│   └── common/       # 공통 컴포넌트
-│
-├── pages/            # 페이지 컴포넌트
-│   ├── auth/         # 로그인/회원가입
-│   ├── dashboard/    # 대시보드
-│   ├── ledgers/      # 가계부 목록
-│   ├── transactions/ # 거래 내역
-│   ├── assets/       # 자산 현황
-│   ├── statistics/   # 통계
-│   └── settings/     # 설정
-│
-├── lib/              # 유틸리티 및 헬퍼
-│   ├── utils/        # 유틸 함수
-│   ├── hooks/        # 커스텀 훅
-│   └── mocks/        # 더미 데이터 (개발용)
-│
-├── hooks/            # 도메인별 커스텀 훅
-├── stores/           # Zustand 스토어
-├── types/            # TypeScript 타입
-├── constants/        # 상수 (카테고리, 통화 등)
-├── services/         # API 서비스 레이어
-│
-├── router.tsx        # 라우터 설정
-├── App.tsx           # 메인 앱
-└── main.tsx          # 엔트리 포인트
+├── app/
+│   ├── index.tsx
+│   └── router.tsx
+├── pages/
+├── widgets/
+├── features/
+├── entities/
+└── shared/
 ```
 
-## 🎨 주요 기능
+## 데이터 모델 (Firestore)
 
-### ✅ 구현 완료 (UI)
+- `users/{userId}`
+- `ledgers/{ledgerId}`
+  - `transactions/{YYYY-MM}/items/{transactionId}`
+  - `assets/{assetId}`
+  - `assetLogs/{logId}`
+- `categories/{ledgerId}`
+- `invitations/{invitationId}`
 
-- [x] 로그인 페이지
-- [x] 대시보드
-- [x] 가계부 목록
-- [x] 거래 내역 (수입/지출)
-- [x] 자산 현황
-- [x] 통계 대시보드
-- [x] 반응형 레이아웃 (모바일/태블릿/데스크톱)
+## 권한 모델
 
-### 🔜 예정
+- `owner`: 모든 권한
+- `editor`: 거래/자산/카테고리 편집 가능
+- `viewer`: 조회 전용
 
-- [ ] Firebase 인증 연동
-- [ ] Firestore 데이터베이스 연동
-- [ ] 거래 추가/수정/삭제
-- [ ] 자산 추가/수정/삭제
-- [ ] 가계부 초대 및 공유
-- [ ] 필터링 및 검색
-- [ ] 차트 시각화
-- [ ] 데이터 내보내기 (CSV, Excel)
-- [ ] PWA 지원
-- [ ] 다크 모드
+권한은
+- 클라이언트 훅: `src/shared/hooks/useLedgerPermission.ts`
+- 서버 규칙: `firestore.rules`
+로 함께 제어합니다.
 
-## 🚦 시작하기
+## 암호화
 
-### 요구사항
+다음 필드는 가계부별 `encryptionKey`로 암호화됩니다.
 
+- 거래: `amount`, `description`, `memo`
+- 자산: `name`, `balance`, `memo`
+- 자산 로그: `previousBalance`, `newBalance`, `description`
+
+코드: `src/shared/lib/crypto/encryption.ts`
+
+## 실행
+
+요구사항
 - Node.js 18+
-- pnpm 8+
+- pnpm
 
-### 설치
+설치
 
 ```bash
-# 의존성 설치
 pnpm install
 ```
 
-### 개발 서버 실행
+개발 서버
 
 ```bash
-# 개발 모드
 pnpm dev
-
-# 브라우저에서 http://localhost:5173 열기
 ```
 
-### 빌드
+빌드
 
 ```bash
-# 프로덕션 빌드
 pnpm build
-
-# 빌드 미리보기
-pnpm preview
 ```
 
-### 코드 품질
+타입 체크
 
 ```bash
-# 린트 검사
-pnpm lint
-
-# 타입 체크
 pnpm type-check
-
-# 포맷팅
-pnpm format
 ```
 
-## 📝 개발 단계
+린트
 
-### Phase 1: UI 구현 (현재) ✅
+```bash
+pnpm lint
+```
 
-- 더미 데이터를 사용한 UI 구현
-- 반응형 디자인
-- 기본 페이지 및 컴포넌트
+## 환경 변수
 
-### Phase 2: Firebase 연동 (다음)
+`.env`에 아래 값을 설정하세요.
 
-- Firebase 프로젝트 설정
-- Authentication (Google OAuth)
-- Firestore 데이터베이스
-- Security Rules
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
 
-### Phase 3: 핵심 기능
+참고: 코드상 `VITE_FIREBASE_PROJECT_ID`가 비어 있으면 기본값 `kookbomm-expenses`를 사용합니다.
 
-- CRUD 기능 완성
-- 실시간 동기화
-- 가계부 공유 및 초대
+## 현재 구현 기준 제한/주의사항
 
-### Phase 4: 고급 기능
+- 거래 내보내기 UI는 현재 **Excel(`.xlsx`) 고정**입니다.
+- 자산 내보내기에서 "자산 변경 이력 포함" 옵션은 존재하지만, 현재는 별도 시트 포함이 미구현입니다.
+- 거래 업로드 검증은 현재 마이그레이션 모드로 카테고리/결제수단 검증을 건너뜁니다.
 
-- 차트 및 통계
-- 필터링 및 검색
-- 데이터 내보내기
-- PWA 기능
+## 관련 문서
 
-## 🎯 카테고리 구조
-
-### 수입 카테고리
-
-- 급여소득: 월급, 상여금, 성과급, 야근수당
-- 사업소득: 프리랜서, 부업, 사업 매출
-- 재산소득: 이자, 배당, 임대료
-- 기타소득: 용돈, 선물, 환급, 기타
-
-### 지출 카테고리
-
-- 식비: 외식, 배달, 장보기, 카페/디저트
-- 교통: 대중교통, 택시, 주유, 통행료, 주차
-- 주거/통신: 월세/관리비, 인터넷, 휴대폰, 공과금
-- 생활: 생필품, 의류, 미용, 의료
-- 문화/여가: 영화/공연, 여행, 취미, 구독 서비스
-- 교육: 학원, 도서, 강의
-- 경조사: 결혼, 돌잔치, 장례
-- 기타: 세금, 보험, 기타
-
-### 자산 카테고리
-
-- 현금성자산: 현금, 입출금 계좌, 저축 예금, 청약 저축
-- 투자자산: 주식, 펀드, 채권, 암호화폐, 부동산
-- 부채: 신용카드, 대출, 할부, 기타 부채
-
-## 📄 라이선스
-
-MIT
-
-## 👨‍💻 개발자
-
-[@iljin](https://github.com/iljin)
+- `PROJECT_PLAN.md`: 코드 기반 기획/아키텍처/백로그
+- `DEVELOPMENT_STATUS.md`: 현재 구현 상태 체크리스트
+- `FIRESTORE_SECURITY_RULES.md`: Firestore 보안 규칙 설명
+- `IMPORT_PLAN.md`, `EXPORT_PLAN.md`: import/export 현황 및 개선 계획
+- `FSD_MIGRATION_COMPLETE.md`: FSD 전환 완료 보고

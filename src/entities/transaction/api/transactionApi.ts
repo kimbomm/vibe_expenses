@@ -152,25 +152,22 @@ export async function getTransactionMonthKeys(ledgerId: string): Promise<string[
   try {
     const transactionsRef = collection(db, 'ledgers', ledgerId, 'transactions')
     const snapshot = await getDocs(transactionsRef)
-    let monthKeys = snapshot.docs.map((doc) => doc.id).sort()
-    console.log('getTransactionMonthKeys - Firestore에서 조회된 월 목록:', monthKeys)
+    const monthKeySet = new Set(snapshot.docs.map((doc) => doc.id))
+    console.log('getTransactionMonthKeys - Firestore에서 조회된 월 문서 목록:', Array.from(monthKeySet))
 
-    // 만약 빈 배열이면, 실제로 데이터가 있는 월을 찾기 위해 시도
-    if (monthKeys.length === 0) {
-      console.warn('Firestore에서 월 목록이 비어있습니다. 실제 데이터가 있는 월을 찾는 중...')
+    // 주의: transactions/{YYYY-MM} 부모 문서는 일부 월만 존재할 수 있으므로
+    // 실제 items 데이터 기준으로 최근 월 범위를 추가 스캔하여 병합한다.
+    const now = new Date()
+    const monthKeysToTry: string[] = []
+    for (let i = 0; i < 36; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const year = date.getFullYear()
+      const month = date.getMonth() + 1
+      monthKeysToTry.push(`${year}-${String(month).padStart(2, '0')}`)
+    }
 
-      // 최근 24개월 동안 데이터가 있는지 확인
-      const now = new Date()
-      const monthKeysToTry: string[] = []
-      for (let i = 0; i < 24; i++) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const year = date.getFullYear()
-        const month = date.getMonth() + 1
-        monthKeysToTry.push(`${year}-${String(month).padStart(2, '0')}`)
-      }
-
-      // 각 월에 실제 데이터가 있는지 확인
-      const promises = monthKeysToTry.map(async (monthKey) => {
+    const scanResults = await Promise.all(
+      monthKeysToTry.map(async (monthKey) => {
         try {
           const [year, month] = monthKey.split('-').map(Number)
           const transactions = await getTransactionsByLedgerAndMonth(ledgerId, year, month)
@@ -179,26 +176,29 @@ export async function getTransactionMonthKeys(ledgerId: string): Promise<string[
           return null
         }
       })
+    )
 
-      const results = await Promise.all(promises)
-      monthKeys = results.filter((key): key is string => key !== null).sort()
-      console.log('getTransactionMonthKeys - 실제 데이터가 있는 월 목록:', monthKeys)
+    scanResults.forEach((key) => {
+      if (key) monthKeySet.add(key)
+    })
 
-      // 여전히 빈 배열이면 Store에서 추출 시도
-      if (monthKeys.length === 0) {
-        console.warn('실제 데이터가 있는 월을 찾지 못했습니다. Store에서 월 목록을 추출합니다.')
-        const { useTransactionStore } = await import('../model/store')
-        const { getMonthKey } = await import('@/shared/lib/export/dateUtils')
+    let monthKeys = Array.from(monthKeySet).sort()
+    console.log('getTransactionMonthKeys - 병합된 월 목록:', monthKeys)
 
-        const storeTransactions = useTransactionStore.getState().transactions[ledgerId] || []
-        if (storeTransactions.length > 0) {
-          const monthSet = new Set<string>()
-          storeTransactions.forEach((t) => {
-            monthSet.add(getMonthKey(t.date))
-          })
-          monthKeys = Array.from(monthSet).sort()
-          console.log('getTransactionMonthKeys - Store에서 추출된 월 목록:', monthKeys)
-        }
+    // 여전히 빈 배열이면 Store에서 추출 시도
+    if (monthKeys.length === 0) {
+      console.warn('실제 데이터가 있는 월을 찾지 못했습니다. Store에서 월 목록을 추출합니다.')
+      const { useTransactionStore } = await import('../model/store')
+      const { getMonthKey } = await import('@/shared/lib/export/dateUtils')
+
+      const storeTransactions = useTransactionStore.getState().transactions[ledgerId] || []
+      if (storeTransactions.length > 0) {
+        const monthSet = new Set<string>()
+        storeTransactions.forEach((t) => {
+          monthSet.add(getMonthKey(t.date))
+        })
+        monthKeys = Array.from(monthSet).sort()
+        console.log('getTransactionMonthKeys - Store에서 추출된 월 목록:', monthKeys)
       }
     }
 
@@ -477,4 +477,3 @@ export async function deleteTransactionById(
     throw error
   }
 }
-

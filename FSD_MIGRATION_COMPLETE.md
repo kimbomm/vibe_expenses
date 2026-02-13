@@ -1,153 +1,38 @@
 # FSD 마이그레이션 완료 보고서
 
-## ✅ 완료된 작업
+기준: 현재 코드베이스
 
-### Phase 1: shared 레이어 구성 ✅
+## 최종 결과
 
-- [x] `shared/ui` - 모든 UI 컴포넌트 (button, card, dialog, input, label, select)
-- [x] `shared/lib/utils` - 유틸리티 함수들 (cn, format, asset)
-- [x] `shared/lib/crypto` - 암호화 유틸리티
-- [x] `shared/lib/export` - export 유틸리티 (dateUtils)
-- [x] `shared/api/firebase` - Firebase 설정
-- [x] `shared/config` - 상수들 (routes, categories, currencies)
-- [x] `shared/hooks` - 공통 훅들 (useCategories, useLedgerPermission, useMediaQuery)
-- [x] `shared/types` - 공통 타입 재export
+마이그레이션은 완료되었고, 코드가 FSD 레이어로 운영 중입니다.
 
-### Phase 2: entities 레이어 구성 ✅
-
-- [x] `entities/transaction` - 완료
-  - [x] `model/types.ts`, `model/store.ts`
-  - [x] `api/transactionApi.ts`
-  - [x] `lib/transactionCrypto.ts`
-- [x] `entities/ledger` - 완료
-  - [x] `model/types.ts`, `model/store.ts`
-  - [x] `api/ledgerApi.ts`
-- [x] `entities/asset` - 완료
-  - [x] `model/types.ts`, `model/store.ts`
-  - [x] `api/assetApi.ts`
-  - [x] `lib/assetCrypto.ts`
-- [x] `entities/category` - 완료
-  - [x] `model/types.ts`, `model/store.ts`
-  - [x] `api/categoryApi.ts`
-- [x] `entities/user` - 완료
-  - [x] `model/types.ts`, `model/store.ts`
-  - [x] `api/authApi.ts`, `api/userApi.ts`
-- [x] `entities/invitation` - 완료
-  - [x] `model/types.ts`, `model/store.ts`
-  - [x] `api/invitationApi.ts`
-
-### Phase 3: features 레이어 구성 ✅
-
-- [x] `features/transaction-create` - TransactionForm, TransactionFormContent
-- [x] `features/transaction-import` - ImportTransactionModal, ImportTransactionContent
-- [x] `features/transaction-export` - ExportTransactionModal, ExportTransactionContent, DateFilterSelector
-- [x] `features/ledger-create` - LedgerForm, LedgerFormContent
-- [x] `features/asset-create` - AssetForm, AssetFormContent
-- [x] `features/asset-export` - ExportAssetModal, ExportAssetContent
-- [x] `features/category-manage` - CategoryManager
-- [x] `features/category-import` - ImportCategoryModal, ImportCategoryContent
-- [x] `features/member-invite` - InviteMemberModal
-- [x] `features/auth-protected-route` - ProtectedRoute
-
-### Phase 4: widgets 레이어 구성 ✅
-
-- [x] `widgets/layout/header` - Header
-- [x] `widgets/layout/sidebar` - Sidebar
-- [x] `widgets/layout/main-layout` - Layout
-- [x] `widgets/transaction-calendar` - CalendarView
-
-### Phase 5: pages 레이어 ✅
-
-- [x] pages는 기본 구조 유지 (기존 위치 유지)
-- [x] 모든 임포트 경로 업데이트 완료
-
-### Phase 6: app 레이어 구성 ✅
-
-- [x] `app/router.tsx` - 라우팅 설정
-- [x] `app/index.tsx` - App 컴포넌트
-- [x] `main.tsx` - 진입점 업데이트
-
-### 임포트 경로 업데이트 ✅
-
-- [x] 모든 주요 임포트 경로를 새 FSD 구조에 맞게 업데이트
-- [x] 빌드 성공 확인
-
-## 📁 최종 FSD 구조
-
-```
+```text
 src/
-├── app/                    # 앱 초기화 및 라우팅
-│   ├── router.tsx
-│   └── index.tsx
-├── pages/                  # 페이지 컴포넌트
-│   ├── auth/
-│   ├── ledgers/
-│   ├── transactions/
-│   ├── assets/
-│   ├── dashboard/
-│   ├── statistics/
-│   ├── settings/
-│   ├── members/
-│   └── invitations/
-├── widgets/                # 복합 UI 블록
-│   └── layout/
-│       ├── header/
-│       ├── sidebar/
-│       ├── main-layout/
-│       └── transaction-calendar/
-├── features/               # 비즈니스 기능
-│   ├── transaction-create/
-│   ├── transaction-import/
-│   ├── transaction-export/
-│   ├── ledger-create/
-│   ├── asset-create/
-│   ├── asset-export/
-│   ├── category-manage/
-│   ├── category-import/
-│   ├── member-invite/
-│   └── auth-protected-route/
-├── entities/               # 비즈니스 엔티티
-│   ├── transaction/
-│   ├── ledger/
-│   ├── asset/
-│   ├── category/
-│   ├── user/
-│   └── invitation/
-└── shared/                 # 공유 코드
-    ├── ui/
-    ├── lib/
-    ├── api/
-    ├── config/
-    ├── hooks/
-    └── types/
+├── app/
+├── pages/
+├── widgets/
+├── features/
+├── entities/
+└── shared/
 ```
 
-## 🎯 주요 변경사항
+## 레이어별 상태
 
-### 임포트 경로 매핑
+- app: 라우팅/앱 초기화 분리 완료
+- pages: 라우트 단위 조립 레이어로 유지
+- widgets: 레이아웃/달력/요약 위젯 분리
+- features: 폼, import/export, 권한 보호 기능 분리
+- entities: 도메인별 타입/스토어/API 분리
+- shared: 공통 UI/유틸/설정/훅/API 정리
 
-- `@/components/ui/*` → `@/shared/ui/*`
-- `@/stores/*` → `@/entities/{entity}/model/store`
-- `@/lib/firebase/*` → `@/entities/{entity}/api/*`
-- `@/lib/crypto/*` → `@/entities/{entity}/lib/*` 또는 `@/shared/lib/crypto/*`
-- `@/components/transaction/*` → `@/features/transaction-*` 또는 `@/widgets/transaction-*`
-- `@/components/layout/*` → `@/widgets/layout/*`
-- `@/router` → `@/app/router`
-- `@/App` → `@/app`
+## 코드 기준 확인 포인트
 
-## ✅ 빌드 상태
+- 라우터: `src/app/router.tsx`
+- 앱 엔트리: `src/main.tsx`, `src/app/index.tsx`
+- 도메인 스토어: `src/entities/*/model/store.ts`
+- 공용 유틸: `src/shared/lib/*`
 
-- ✅ 빌드 성공
-- ✅ 모든 임포트 경로 정상 작동
-- ⚠️ 일부 경고 존재 (동적 임포트 관련, 기능에는 영향 없음)
+## 남은 작업(구조 관점)
 
-## 📝 다음 단계 (선택사항)
-
-1. 기존 파일 정리 (components, stores, lib 폴더의 중복 파일 삭제)
-2. 추가 widgets 구성 (transaction-list, dashboard-summary 등)
-3. 코드 스플리팅 최적화
-4. 문서화 보완
-
-## 🎉 마이그레이션 완료!
-
-FSD 구조로의 전환이 완료되었습니다. 프로젝트는 이제 Feature-Sliced Design 아키텍처를 따르며, 명확한 레이어 분리와 의존성 규칙을 갖추고 있습니다.
+- 구조 마이그레이션 자체는 종료
+- 이후 작업은 기능 개선/품질 개선(테스트, 문서, 성능) 중심

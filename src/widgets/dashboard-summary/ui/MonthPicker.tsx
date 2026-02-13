@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { cn } from '@/shared/lib/utils'
 import type { Transaction } from '@/shared/types'
+import { getTransactionMonthKeys } from '@/entities/transaction/api/transactionApi'
 
 interface MonthPickerProps {
   selectedMonth: string // YYYY-MM 형식
@@ -21,13 +22,63 @@ export function MonthPicker({
 }: MonthPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [availableMonthKeys, setAvailableMonthKeys] = useState<string[]>([])
 
   // 선택한 년도/월 파싱
   const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number)
   const selectedDate = new Date(selectedYear, selectedMonthNum - 1, 1)
 
+  // 실제 거래가 있는 월 목록 조회 (초기 로드 시 이전 월이 비활성화되는 문제 방지)
+  useEffect(() => {
+    if (!ledgerId) {
+      setAvailableMonthKeys([])
+      return
+    }
+
+    let cancelled = false
+
+    const fetchMonthKeys = async () => {
+      try {
+        const monthKeys = await getTransactionMonthKeys(ledgerId)
+        if (!cancelled) {
+          setAvailableMonthKeys(monthKeys)
+        }
+      } catch (error) {
+        console.error('월 목록 조회 실패:', error)
+        if (!cancelled) {
+          setAvailableMonthKeys([])
+        }
+      }
+    }
+
+    fetchMonthKeys()
+
+    return () => {
+      cancelled = true
+    }
+  }, [ledgerId, transactions])
+
   // 해당 가계부의 거래 데이터 범위 계산
   const dateRange = useMemo(() => {
+    // 1순위: Firestore에서 조회한 실제 월 목록
+    if (availableMonthKeys.length > 0) {
+      const sorted = [...availableMonthKeys].sort()
+      const firstMonth = sorted[0]
+      const lastMonth = sorted[sorted.length - 1]
+
+      if (firstMonth && lastMonth) {
+        const [startYear, startMonth] = firstMonth.split('-').map(Number)
+        const [endYear, endMonth] = lastMonth.split('-').map(Number)
+        return {
+          startYear,
+          startMonth,
+          endYear,
+          endMonth,
+        }
+      }
+    }
+
+    // 2순위: 스토어에 로드된 거래 데이터
     const ledgerTransactions = transactions.filter((t) => t.ledgerId === ledgerId)
 
     if (ledgerTransactions.length === 0) {
@@ -50,9 +101,9 @@ export function MonthPicker({
       startYear: earliestDate.getFullYear(),
       startMonth: earliestDate.getMonth() + 1,
       endYear: now.getFullYear(),
-      endMonth: 12, // 현재 년도의 12월까지
+      endMonth: now.getMonth() + 1,
     }
-  }, [transactions, ledgerId])
+  }, [transactions, ledgerId, availableMonthKeys])
 
   // 선택 가능한 년/월인지 확인
   const isMonthAvailable = (year: number, month: number) => {

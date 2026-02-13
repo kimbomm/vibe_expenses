@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Menu, LogOut, Mail } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import { Menu, LogOut, Mail, Search } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '@/shared/ui/button'
 import { useAuthStore } from '@/entities/user/model/store'
@@ -16,6 +16,12 @@ export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation()
   const { pendingCount, fetchPendingCount } = useInvitationStore()
   const { ledgers } = useLedgerStore()
+
+  const currentLedgerId = useMemo(() => {
+    const ledgerIdFromPath = location.pathname.match(/\/ledgers\/([^/]+)/)?.[1]
+    const lastLedgerId = typeof window !== 'undefined' ? localStorage.getItem('lastLedgerId') : null
+    return ledgerIdFromPath || lastLedgerId || ledgers[0]?.id || null
+  }, [location.pathname, ledgers])
 
   // 대기 초대 개수 조회
   useEffect(() => {
@@ -34,11 +40,6 @@ export function Header({ onMenuClick }: HeaderProps) {
   }
 
   const handleLogoClick = () => {
-    // URL에서 현재 가계부 ID 추출
-    const ledgerIdFromPath = location.pathname.match(/\/ledgers\/([^/]+)/)?.[1]
-    const lastLedgerId = typeof window !== 'undefined' ? localStorage.getItem('lastLedgerId') : null
-    const currentLedgerId = ledgerIdFromPath || lastLedgerId
-
     if (currentLedgerId) {
       // 현재 가계부가 있으면 해당 가계부의 대시보드로 이동
       navigate(`/ledgers/${currentLedgerId}/dashboard`)
@@ -83,6 +84,16 @@ export function Header({ onMenuClick }: HeaderProps) {
                     {pendingCount > 9 ? '9+' : pendingCount}
                   </span>
                 )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() =>
+                  navigate(`/search${currentLedgerId ? `?ledgerId=${currentLedgerId}` : ''}`)
+                }
+                title="거래 검색"
+              >
+                <Search className="h-5 w-5" />
               </Button>
 
               <div className="hidden items-center gap-2 md:flex">

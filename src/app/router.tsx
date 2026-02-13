@@ -18,6 +18,7 @@ import { CategoriesPage } from '@/pages/settings/CategoriesPage'
 import { ImportCategoryPage } from '@/pages/settings/ImportCategoryPage'
 import { MembersPage } from '@/pages/members/MembersPage'
 import { InvitationsPage } from '@/pages/invitations/InvitationsPage'
+import { TransactionSearchPage } from '@/pages/search/TransactionSearchPage'
 
 export const router = createBrowserRouter([
   {
@@ -76,6 +77,10 @@ export const router = createBrowserRouter([
       {
         path: 'invitations',
         element: <InvitationsPage />,
+      },
+      {
+        path: 'search',
+        element: <TransactionSearchPage />,
       },
     ],
   },
