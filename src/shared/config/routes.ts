@@ -21,6 +21,8 @@ export const ROUTES = {
 
   // Assets
   ASSETS: (ledgerId: string) => `/ledgers/${ledgerId}/assets`,
+  ASSET_DETAIL: (ledgerId: string, assetId: string) =>
+    `/ledgers/${ledgerId}/assets/${assetId}`,
 
   // Statistics
   STATISTICS: (ledgerId: string) => `/ledgers/${ledgerId}/statistics`,

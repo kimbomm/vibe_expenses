@@ -132,10 +132,39 @@ export async function decryptAssetLog(log: AssetLog, encryptionKey: string): Pro
     newBalance: newBalanceIsEncrypted
       ? await decryptNumber(log.newBalance as any, encryptionKey)
       : log.newBalance,
-    description: descriptionIsEncrypted
-      ? await decrypt(log.description, encryptionKey)
-      : log.description,
+    description: await decryptLogDescription(log.description, descriptionIsEncrypted, encryptionKey),
   }
+}
+
+async function decryptLogDescription(
+  description: string,
+  isFullyEncrypted: boolean,
+  encryptionKey: string
+): Promise<string> {
+  // 전체가 하나의 암호문인 경우
+  if (isFullyEncrypted) {
+    return decrypt(description, encryptionKey)
+  }
+
+  // 과거 데이터 호환:
+  // "자산 '<암호문>' 추가" 처럼 문장 안에 암호문 토큰이 섞여 있는 경우 처리
+  const tokens = description.split(' ')
+  const decryptedTokens = await Promise.all(
+    tokens.map(async (rawToken) => {
+      const stripped = rawToken.replace(/^['"]|['"]$/g, '')
+      if (stripped && isEncrypted(stripped)) {
+        try {
+          const decrypted = await decrypt(stripped, encryptionKey)
+          return decrypted
+        } catch {
+          return rawToken
+        }
+      }
+      return rawToken
+    })
+  )
+
+  return decryptedTokens.join(' ')
 }
 
 /**

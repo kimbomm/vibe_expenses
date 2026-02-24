@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Plus, Wallet, TrendingUp, TrendingDown, Edit, Trash2, Download } from 'lucide-react'
@@ -14,7 +14,7 @@ import { isLiabilityCategory } from '@/shared/lib/utils/asset'
 import { AssetForm } from '@/features/asset-create'
 import { ExportAssetModal } from '@/features/asset-export'
 import { useIsMobile } from '@/shared/hooks/useMediaQuery'
-import { useNavigate } from 'react-router-dom'
+import { ROUTES } from '@/shared/config/routes'
 import type { Asset } from '@/shared/types'
 
 export function AssetsPage() {
@@ -36,6 +36,7 @@ export function AssetsPage() {
     return state.assets[ledgerId] || EMPTY_ASSETS
   })
   const fetchAssets = useAssetStore((state) => state.fetchAssets)
+  const fetchAssetLogs = useAssetStore((state) => state.fetchAssetLogs)
   const addAsset = useAssetStore((state) => state.addAsset)
   const updateAsset = useAssetStore((state) => state.updateAsset)
   const deleteAsset = useAssetStore((state) => state.deleteAsset)
@@ -53,7 +54,8 @@ export function AssetsPage() {
     if (!ledgerId || !currentLedger?.encryptionKey) return
 
     fetchAssets(ledgerId)
-  }, [ledgerId, fetchAssets, currentLedger?.encryptionKey])
+    fetchAssetLogs(ledgerId)
+  }, [ledgerId, fetchAssets, fetchAssetLogs, currentLedger?.encryptionKey])
 
   const assets = storeAssets.filter((a) => a.isActive)
 
@@ -168,7 +170,14 @@ export function AssetsPage() {
                     key={asset.id}
                     className="relative flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      onClick={() => {
+                        if (!ledgerId) return
+                        navigate(ROUTES.ASSET_DETAIL(ledgerId, asset.id))
+                      }}
+                    >
                       <div className="flex-shrink-0 rounded-lg bg-primary/10 p-2">
                         <Wallet className="h-5 w-5 text-primary" />
                       </div>
@@ -176,7 +185,7 @@ export function AssetsPage() {
                         <h4 className="truncate font-semibold">{asset.name}</h4>
                         <p className="text-sm text-muted-foreground">{asset.category2}</p>
                       </div>
-                    </div>
+                    </button>
                     <div className="flex items-center justify-between gap-2 sm:justify-end">
                       <div className="flex-shrink-0 text-right sm:min-w-[120px]">
                         <div
