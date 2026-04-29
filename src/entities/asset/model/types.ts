@@ -26,4 +26,3 @@ export interface AssetLog {
   createdAt: Date
   createdBy: string
 }
-

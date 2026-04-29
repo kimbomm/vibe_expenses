@@ -155,11 +155,17 @@ export const useAssetStore = create<AssetState>((set, get) => ({
   // 자산 수정
   updateAsset: async (ledgerId, assetId, updates, userId) => {
     try {
-      // 암호화
-      const encryptionKey = getEncryptionKey(ledgerId)
-      const dataToSave = encryptionKey ? await encryptAssetUpdate(updates, encryptionKey) : updates
+      const memoPlain =
+        typeof updates.memo === 'string' ? updates.memo : undefined
 
-      await updateAssetById(ledgerId, assetId, dataToSave, userId)
+      const encryptionKey = getEncryptionKey(ledgerId)
+      const dataToSave = encryptionKey
+        ? await encryptAssetUpdate(updates, encryptionKey)
+        : updates
+
+      await updateAssetById(ledgerId, assetId, dataToSave, userId, {
+        memoPlain,
+      })
 
       // 수정 후 해당 가계부의 자산 및 로그 다시 조회
       await get().fetchAssets(ledgerId)

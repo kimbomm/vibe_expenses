@@ -32,14 +32,12 @@ export function AssetDetailPage() {
     if (!ledgerId) return EMPTY_LOGS
     return state.assetLogs[ledgerId] || EMPTY_LOGS
   })
-  const lastFetched = useAssetStore((state) =>
-    ledgerId ? state.lastFetched[ledgerId] : undefined
-  )
+  const lastFetched = useAssetStore((state) => (ledgerId ? state.lastFetched[ledgerId] : undefined))
   const fetchAssets = useAssetStore((state) => state.fetchAssets)
   const fetchAssetLogs = useAssetStore((state) => state.fetchAssetLogs)
   const updateAsset = useAssetStore((state) => state.updateAsset)
   const currentLedger = useLedgerStore((state) =>
-    ledgerId ? state.ledgers.find((l) => l.id === ledgerId) ?? null : null
+    ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
   )
 
   const hasFetchedRef = useRef(false)
@@ -53,10 +51,7 @@ export function AssetDetailPage() {
     fetchAssetLogs(ledgerId)
   }, [ledgerId, fetchAssets, fetchAssetLogs, currentLedger?.encryptionKey])
 
-  const asset = useMemo(
-    () => storeAssets.find((a) => a.id === assetId),
-    [storeAssets, assetId]
-  )
+  const asset = useMemo(() => storeAssets.find((a) => a.id === assetId), [storeAssets, assetId])
 
   const logsForAsset = useMemo(
     () => assetLogs.filter((log) => log.assetId === assetId),
@@ -163,7 +158,7 @@ export function AssetDetailPage() {
           </div>
 
           {/* 구분선 */}
-          <div className="border-t pt-4 space-y-2">
+          <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-muted-foreground">변동 내역</span>
             </div>
@@ -174,10 +169,7 @@ export function AssetDetailPage() {
                 </p>
               ) : (
                 logsForAsset.map((log) => (
-                  <div
-                    key={log.id}
-                    className="rounded-md bg-muted/60 p-3 text-sm"
-                  >
+                  <div key={log.id} className="rounded-md bg-muted/60 p-3 text-sm">
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         {getLogTypeLabel(log.type)}
@@ -186,13 +178,11 @@ export function AssetDetailPage() {
                         {log.createdAt.toLocaleString()}
                       </span>
                     </div>
-                    {log.previousBalance !== undefined &&
-                      log.newBalance !== undefined && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {formatCurrency(log.previousBalance)} →{' '}
-                          {formatCurrency(log.newBalance)}
-                        </p>
-                      )}
+                    {log.previousBalance !== undefined && log.newBalance !== undefined && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatCurrency(log.previousBalance)} → {formatCurrency(log.newBalance)}
+                      </p>
+                    )}
                     <p className="mt-1">{log.description}</p>
                   </div>
                 ))
@@ -224,9 +214,7 @@ export function AssetDetailPage() {
   )
 }
 
-function getLogTypeLabel(
-  type: import('@/entities/asset/model/types').AssetLogType
-): string {
+function getLogTypeLabel(type: import('@/entities/asset/model/types').AssetLogType): string {
   switch (type) {
     case 'created':
       return '생성'
@@ -242,4 +230,3 @@ function getLogTypeLabel(
       return type
   }
 }
-

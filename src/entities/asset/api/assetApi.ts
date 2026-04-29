@@ -143,7 +143,8 @@ export async function updateAssetById(
   ledgerId: string,
   assetId: string,
   updates: Partial<Omit<Asset, 'id' | 'createdAt' | 'createdBy'>>,
-  userId: string
+  userId: string,
+  options?: { memoPlain?: string }
 ): Promise<void> {
   try {
     const assetRef = doc(db, 'ledgers', ledgerId, 'assets', assetId)
@@ -179,7 +180,7 @@ export async function updateAssetById(
         type: 'balance_changed',
         previousBalance: existingAsset.balance,
         newBalance: updates.balance,
-        description: `잔액 변경: ${existingAsset.balance.toLocaleString()} → ${updates.balance.toLocaleString()}`,
+        description: options?.memoPlain ?? '',
         createdBy: userId,
       })
     }
@@ -316,4 +317,3 @@ async function createAssetLog(
     throw error
   }
 }
-

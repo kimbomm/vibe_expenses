@@ -132,7 +132,11 @@ export async function decryptAssetLog(log: AssetLog, encryptionKey: string): Pro
     newBalance: newBalanceIsEncrypted
       ? await decryptNumber(log.newBalance as any, encryptionKey)
       : log.newBalance,
-    description: await decryptLogDescription(log.description, descriptionIsEncrypted, encryptionKey),
+    description: await decryptLogDescription(
+      log.description,
+      descriptionIsEncrypted,
+      encryptionKey
+    ),
   }
 }
 
@@ -181,4 +185,3 @@ export async function decryptAssetLogs(
 
   return Promise.all(logs.map((l) => decryptAssetLog(l, encryptionKey)))
 }
-
