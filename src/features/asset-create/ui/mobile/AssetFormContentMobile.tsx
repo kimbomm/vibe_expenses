@@ -1,0 +1,111 @@
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
+import { Label } from '@/shared/ui/label'
+import { Select } from '@/shared/ui/select'
+import { useAssetForm } from '../../model/useAssetForm'
+import type { Asset } from '@/shared/types'
+
+interface AssetFormContentMobileProps {
+  ledgerId: string
+  asset?: Asset
+  onSubmit: (
+    data: Omit<Asset, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'isActive' | 'currency'>
+  ) => void
+  onCancel: () => void
+  showButtons?: boolean
+}
+
+export function AssetFormContentMobile({
+  ledgerId,
+  asset,
+  onSubmit,
+  onCancel,
+  showButtons = true,
+}: AssetFormContentMobileProps) {
+  const {
+    register,
+    handleSubmit,
+    errors,
+    category1,
+    category1List,
+    category2List,
+    balanceDisplay,
+    handleBalanceChange,
+    onFormSubmit,
+    asset: editingAsset,
+  } = useAssetForm({ ledgerId, asset, onSubmit, onCancel })
+
+  return (
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4" id="asset-form">
+      <div className="space-y-2">
+        <Label htmlFor="name">자산명 *</Label>
+        <Input id="name" {...register('name')} placeholder="예: 신한은행 입출금" />
+        {errors.name ? <p className="text-sm text-red-500">{errors.name.message}</p> : null}
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="category1">대분류 *</Label>
+          <Select id="category1" {...register('category1')}>
+            <option value="">선택하세요</option>
+            {category1List.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </Select>
+          {errors.category1 ? (
+            <p className="text-sm text-red-500">{errors.category1.message}</p>
+          ) : null}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="category2">소분류 *</Label>
+          <Select id="category2" {...register('category2')} disabled={!category1}>
+            <option value="">선택하세요</option>
+            {category2List.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </Select>
+          {errors.category2 ? (
+            <p className="text-sm text-red-500">{errors.category2.message}</p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="balance">잔액 (KRW) *</Label>
+        <Input
+          id="balance"
+          type="text"
+          inputMode="numeric"
+          value={balanceDisplay}
+          onChange={handleBalanceChange}
+          placeholder="금액을 입력하세요"
+          className="text-right"
+        />
+        <input type="hidden" {...register('balance', { valueAsNumber: true })} />
+        {errors.balance ? (
+          <p className="text-sm text-red-500">{errors.balance.message}</p>
+        ) : null}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="memo">메모</Label>
+        <Input id="memo" {...register('memo')} placeholder="메모를 입력하세요 (선택사항)" />
+      </div>
+
+      {showButtons ? (
+        <div className="flex flex-col gap-2 pt-4">
+          <Button type="submit" className="w-full">
+            {editingAsset ? '수정' : '추가'}
+          </Button>
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full">
+            취소
+          </Button>
+        </div>
+      ) : null}
+    </form>
+  )
+}

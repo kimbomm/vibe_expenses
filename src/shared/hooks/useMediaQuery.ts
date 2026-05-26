@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { DESKTOP_MEDIA_QUERY, MOBILE_MEDIA_QUERY } from '@/shared/config/breakpoints'
 
 function getMatch(query: string): boolean {
   if (typeof window === 'undefined') return false
@@ -21,6 +22,10 @@ export function useMediaQuery(query: string): boolean {
 }
 
 export function useIsMobile(): boolean {
-  return useMediaQuery('(max-width: 640px)')
+  return useMediaQuery(MOBILE_MEDIA_QUERY)
+}
+
+export function useIsDesktop(): boolean {
+  return useMediaQuery(DESKTOP_MEDIA_QUERY)
 }
 

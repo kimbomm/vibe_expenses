@@ -1,0 +1,512 @@
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import { useSwipeable } from 'react-swipeable'
+import { useParams } from 'react-router-dom'
+import { Card } from '@/shared/ui/card'
+import { Button } from '@/shared/ui/button'
+import { Select } from '@/shared/ui/select'
+import { Label } from '@/shared/ui/label'
+import {
+  Plus,
+  ArrowUpRight,
+  ArrowDownRight,
+  Edit,
+  Trash2,
+  Upload,
+  Download,
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+} from 'lucide-react'
+import { isSameDay, format, addDays } from 'date-fns'
+import { useTransactionStore } from '@/entities/transaction/model/store'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { useAuthStore } from '@/entities/user/model/store'
+import { useLedgerPermission } from '@/shared/hooks/useLedgerPermission'
+import { formatCurrency, formatDateString } from '@/shared/lib/utils'
+import { cn } from '@/shared/lib/utils'
+import { CalendarView } from '@/widgets/transaction-calendar'
+import { TransactionForm } from '@/features/transaction-create'
+import { ImportTransactionModal } from '@/features/transaction-import'
+import { ExportTransactionModal } from '@/features/transaction-export'
+import type { Transaction } from '@/shared/types'
+import { daySwipeDelta } from '@/shared/config/swipeNavigation'
+
+export function TransactionsPageMobile() {
+  const { ledgerId } = useParams()
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [defaultDate, setDefaultDate] = useState<Date | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>()
+  const [defaultTransaction, setDefaultTransaction] = useState<Transaction | undefined>()
+
+  const { user } = useAuthStore()
+  const { canEdit } = useLedgerPermission(ledgerId)
+
+  // 빈 배열을 상수로 정의하여 같은 참조를 유지
+  const EMPTY_ARRAY: Transaction[] = []
+
+  const storeTransactions = useTransactionStore((state) => {
+    if (!ledgerId) return EMPTY_ARRAY
+    return state.transactions[ledgerId] || EMPTY_ARRAY
+  })
+  const fetchTransactionsByMonth = useTransactionStore((state) => state.fetchTransactionsByMonth)
+  const addTransaction = useTransactionStore((state) => state.addTransaction)
+  const updateTransaction = useTransactionStore((state) => state.updateTransaction)
+  const deleteTransaction = useTransactionStore((state) => state.deleteTransaction)
+  const currentLedger = useLedgerStore((state) =>
+    ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
+  )
+
+  // 작성자 정보 가져오기
+  const getCreatorInfo = (userId: string) => {
+    if (!currentLedger) return null
+
+    // 가계부 소유자인 경우
+    if (currentLedger.ownerId === userId) {
+      const ownerMember = currentLedger.members.find((m) => m.userId === currentLedger.ownerId)
+      return ownerMember || { name: '소유자', email: '' }
+    }
+
+    // 멤버인 경우
+    const member = currentLedger.members.find((m) => m.userId === userId)
+    return member || null
+  }
+
+  // 필터용 멤버 목록 (소유자 + 멤버)
+  const filterMembers = useMemo(() => {
+    if (!currentLedger) return []
+
+    const members: Array<{ userId: string; name: string; isOwner: boolean }> = []
+
+    // 소유자 추가
+    const ownerMember = currentLedger.members.find((m) => m.userId === currentLedger.ownerId)
+    if (ownerMember) {
+      members.push({
+        userId: currentLedger.ownerId,
+        name: ownerMember.name,
+        isOwner: true,
+      })
+    }
+
+    // 일반 멤버 추가 (소유자 제외)
+    currentLedger.members.forEach((member) => {
+      if (member.userId !== currentLedger.ownerId) {
+        members.push({
+          userId: member.userId,
+          name: member.name,
+          isOwner: false,
+        })
+      }
+    })
+
+    return members
+  }, [currentLedger])
+
+  // ledgerId 변경 시 필터 초기화
+  const prevLedgerIdRef = useRef<string | undefined>(ledgerId)
+  useEffect(() => {
+    if (prevLedgerIdRef.current !== ledgerId && prevLedgerIdRef.current !== undefined) {
+      setSelectedUserId(null)
+    }
+    prevLedgerIdRef.current = ledgerId
+  }, [ledgerId])
+
+  // 가계부별 거래내역 조회 (페이지 마운트 시, 월별 조회)
+  useEffect(() => {
+    if (!ledgerId || !currentLedger?.encryptionKey) return
+
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth() + 1
+    fetchTransactionsByMonth(ledgerId, year, month)
+  }, [ledgerId, currentMonth, fetchTransactionsByMonth, currentLedger?.encryptionKey])
+
+  // 필터링된 거래 목록 (캘린더용) - currentMonth + 작성자 기준으로 필터링
+  const allFilteredTransactions = useMemo(() => {
+    if (!ledgerId) return []
+
+    return storeTransactions.filter((t) => {
+      const transactionDate = new Date(t.date)
+      const monthMatch =
+        transactionDate.getFullYear() === currentMonth.getFullYear() &&
+        transactionDate.getMonth() === currentMonth.getMonth()
+
+      // 작성자 필터 적용
+      const userMatch = selectedUserId === null || t.createdBy === selectedUserId
+
+      return monthMatch && userMatch
+    })
+  }, [ledgerId, currentMonth, storeTransactions, selectedUserId])
+
+  // 선택된 날짜의 거래 목록 (날짜 클릭 시)
+  const transactions = useMemo(() => {
+    if (selectedDate) {
+      return allFilteredTransactions
+        .filter((t) => isSameDay(new Date(t.date), selectedDate))
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+    }
+    return allFilteredTransactions.sort((a, b) => b.date.getTime() - a.date.getTime())
+  }, [allFilteredTransactions, selectedDate])
+
+  const shiftSelectedDate = useCallback(
+    (direction: -1 | 1) => {
+      if (!selectedDate) return
+
+      const nextDate = addDays(selectedDate, direction)
+      setSelectedDate(nextDate)
+      setDefaultDate(nextDate)
+
+      const monthChanged =
+        nextDate.getMonth() !== currentMonth.getMonth() ||
+        nextDate.getFullYear() !== currentMonth.getFullYear()
+
+      if (monthChanged) {
+        setCurrentMonth(new Date(nextDate.getFullYear(), nextDate.getMonth(), 1))
+      }
+    },
+    [selectedDate, currentMonth]
+  )
+
+  const dayListSwipeHandlers = useSwipeable({
+    onSwipedLeft: () => shiftSelectedDate(1),
+    onSwipedRight: () => shiftSelectedDate(-1),
+    delta: daySwipeDelta,
+    preventScrollOnSwipe: true,
+    trackTouch: true,
+  })
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">거래 내역</h1>
+          <p className="mt-1 text-muted-foreground">수입과 지출을 기록하세요</p>
+        </div>
+        <div className="flex w-full flex-col gap-2">
+          {canEdit && (
+            <>
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => {
+                  setEditingTransaction(undefined)
+                  setDefaultTransaction(undefined)
+                  // selectedDate가 있으면 그것을 기본값으로 사용, 없으면 오늘 날짜
+                  if (selectedDate) {
+                    setDefaultDate(selectedDate)
+                  } else {
+                    setDefaultDate(new Date())
+                  }
+                  setFormOpen(true)
+                }}
+              >
+                <Plus className="mr-2 h-5 w-5" />
+                거래 추가
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setImportOpen(true)
+                }}
+              >
+                <Upload className="mr-2 h-5 w-5" />
+                일괄 업로드
+              </Button>
+            </>
+          )}
+          <Button
+            size="lg"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setExportOpen(true)
+            }}
+          >
+            <Download className="mr-2 h-5 w-5" />
+            내보내기
+          </Button>
+        </div>
+      </div>
+
+      {/* 작성자 필터 */}
+      {currentLedger && filterMembers.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="user-filter" className="text-sm font-medium">
+            작성자 필터
+          </Label>
+          <Select
+            id="user-filter"
+            value={selectedUserId || ''}
+            onChange={(e) => {
+              setSelectedUserId(e.target.value === '' ? null : e.target.value)
+            }}
+            className="w-full"
+          >
+            <option value="">전체</option>
+            {filterMembers.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.name}
+                {member.isOwner && ' (소유자)'}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
+
+      {/* 캘린더 뷰 또는 리스트 뷰 */}
+      {!selectedDate ? (
+        <div className="-mx-4">
+          <CalendarView
+            transactions={allFilteredTransactions}
+            currentDate={currentMonth}
+            onDateChange={(date) => {
+              setCurrentMonth(date)
+            }}
+            onDateClick={(date) => {
+              setSelectedDate(date)
+              setDefaultDate(date) // 날짜 클릭 시 기본 날짜로 저장
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2 rounded-lg border bg-muted/50 p-3">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => shiftSelectedDate(-1)}
+                aria-label="이전 날"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <div className="min-w-0 flex-1 text-center">
+                <h3 className="font-semibold">
+                  {format(selectedDate, 'yyyy년 M월 d일')}
+                </h3>
+                <p className="text-xs text-muted-foreground">거래 내역</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                onClick={() => shiftSelectedDate(1)}
+                aria-label="다음 날"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex justify-center border-t border-border/60 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-3"
+                onClick={() => {
+                  setSelectedDate(null)
+                }}
+              >
+                <Calendar className="h-4 w-4" />
+                캘린더로 돌아가기
+              </Button>
+            </div>
+          </div>
+          {/* 거래 목록 (좌우 스와이프로 날짜 변경) */}
+          <div {...dayListSwipeHandlers} className="touch-pan-y space-y-4">
+            {transactions.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-muted-foreground">선택한 조건에 맞는 거래 내역이 없습니다.</p>
+              </Card>
+            ) : (
+              transactions.map((transaction) => (
+                <Card key={transaction.id} className="relative p-3">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div
+                        className={cn(
+                          'flex-shrink-0 rounded-lg p-2',
+                          transaction.type === 'income'
+                            ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+                            : 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400'
+                        )}
+                      >
+                        {transaction.type === 'income' ? (
+                          <ArrowUpRight className="h-5 w-5" />
+                        ) : (
+                          <ArrowDownRight className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate font-semibold">{transaction.description}</h3>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <span>{transaction.category1}</span>
+                          <span>·</span>
+                          <span>{transaction.category2}</span>
+                          {transaction.paymentMethod1 && (
+                            <>
+                              <span>·</span>
+                              <span>{transaction.paymentMethod1}</span>
+                            </>
+                          )}
+                        </div>
+                        {transaction.memo && (
+                          <div className="mt-1 text-sm text-muted-foreground">
+                            {transaction.memo}
+                          </div>
+                        )}
+                        {transaction.createdBy && (
+                          <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            {(() => {
+                              const creator = getCreatorInfo(transaction.createdBy)
+                              if (!creator) return null
+                              return (
+                                <>
+                                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
+                                    {creator.name.charAt(0)}
+                                  </div>
+                                  <span>{creator.name}</span>
+                                </>
+                              )
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex-shrink-0 text-right">
+                        <div
+                          className={cn(
+                            'text-lg font-bold',
+                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          )}
+                        >
+                          {transaction.type === 'income' ? '+' : '-'}
+                          {formatCurrency(transaction.amount)}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {formatDateString(transaction.date)}
+                        </div>
+                      </div>
+                      {canEdit && transaction.createdBy === user?.uid && (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setEditingTransaction(transaction)
+                              setDefaultTransaction(undefined)
+                              setFormOpen(true)
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setDefaultTransaction(transaction)
+                              setEditingTransaction(undefined)
+                              setFormOpen(true)
+                            }}
+                            title="복사"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={async () => {
+                              if (confirm('정말 삭제하시겠습니까?')) {
+                                try {
+                                  await deleteTransaction(transaction.id)
+                                } catch (error) {
+                                  console.error('거래 삭제 실패:', error)
+                                  alert('거래 삭제에 실패했습니다.')
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {/* 거래 추가/수정 폼 */}
+      {ledgerId && (
+        <>
+          <TransactionForm
+            open={formOpen}
+            onOpenChange={(open) => {
+              setFormOpen(open)
+              if (!open) {
+                // 폼이 닫힐 때 defaultDate, defaultTransaction 초기화
+                setDefaultDate(null)
+                setDefaultTransaction(undefined)
+              }
+            }}
+            ledgerId={ledgerId}
+            transaction={editingTransaction}
+            defaultTransaction={defaultTransaction}
+            defaultDate={defaultDate}
+            onSubmit={async (data) => {
+              if (!user) return
+
+              try {
+                if (editingTransaction) {
+                  await updateTransaction(editingTransaction.id, data, user.uid)
+                } else {
+                  await addTransaction(data, user.uid)
+                }
+
+                // 저장된 거래의 날짜로 이동
+                const savedDate = data.date instanceof Date ? data.date : new Date(data.date)
+                setSelectedDate(savedDate)
+                setCurrentMonth(new Date(savedDate.getFullYear(), savedDate.getMonth(), 1))
+
+                // 해당 월의 거래내역 다시 조회
+                const year = savedDate.getFullYear()
+                const month = savedDate.getMonth() + 1
+                fetchTransactionsByMonth(ledgerId, year, month)
+
+                setFormOpen(false)
+                setEditingTransaction(undefined)
+                setDefaultTransaction(undefined)
+                setDefaultDate(null)
+              } catch (error) {
+                console.error('거래 저장 실패:', error)
+                alert('거래 저장에 실패했습니다.')
+              }
+            }}
+          />
+          <ImportTransactionModal
+            open={importOpen}
+            onOpenChange={setImportOpen}
+            ledgerId={ledgerId}
+          />
+          <ExportTransactionModal
+            open={exportOpen}
+            onOpenChange={setExportOpen}
+            ledgerId={ledgerId}
+          />
+        </>
+      )}
+    </div>
+  )
+}

@@ -26,8 +26,6 @@ export const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
     loader: async () => {
-      // 로그인 페이지 로드 시 redirect 결과 확인
-      // 이렇게 하면 로그인 페이지에서도 redirect 결과를 처리할 수 있음
       return null
     },
   },
@@ -48,6 +46,14 @@ export const router = createBrowserRouter([
         element: <LedgersPage />,
       },
       {
+        path: 'ledgers/new',
+        element: <LedgerFormPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/edit',
+        element: <LedgerFormPage />,
+      },
+      {
         path: 'ledgers/:ledgerId/dashboard',
         element: <DashboardPage />,
       },
@@ -56,12 +62,40 @@ export const router = createBrowserRouter([
         element: <TransactionsPage />,
       },
       {
+        path: 'ledgers/:ledgerId/transactions/new',
+        element: <TransactionFormPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/transactions/:transactionId/edit',
+        element: <TransactionFormPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/transactions/import',
+        element: <ImportTransactionPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/transactions/export',
+        element: <ExportTransactionPage />,
+      },
+      {
         path: 'ledgers/:ledgerId/assets',
         element: <AssetsPage />,
       },
       {
+        path: 'ledgers/:ledgerId/assets/new',
+        element: <AssetFormPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/assets/:assetId/edit',
+        element: <AssetFormPage />,
+      },
+      {
         path: 'ledgers/:ledgerId/assets/:assetId',
         element: <AssetDetailPage />,
+      },
+      {
+        path: 'ledgers/:ledgerId/assets/export',
+        element: <ExportAssetPage />,
       },
       {
         path: 'ledgers/:ledgerId/statistics',
@@ -76,6 +110,10 @@ export const router = createBrowserRouter([
         element: <CategoriesPage />,
       },
       {
+        path: 'ledgers/:ledgerId/settings/categories/import',
+        element: <ImportCategoryPage />,
+      },
+      {
         path: 'ledgers/:ledgerId/members',
         element: <MembersPage />,
       },
@@ -88,86 +126,5 @@ export const router = createBrowserRouter([
         element: <TransactionSearchPage />,
       },
     ],
-  },
-  // 모바일 전용 페이지 (Layout 없이 전체 화면, ProtectedRoute 적용)
-  {
-    path: 'ledgers/new',
-    element: (
-      <ProtectedRoute>
-        <LedgerFormPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/edit',
-    element: (
-      <ProtectedRoute>
-        <LedgerFormPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/transactions/new',
-    element: (
-      <ProtectedRoute>
-        <TransactionFormPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/transactions/:transactionId/edit',
-    element: (
-      <ProtectedRoute>
-        <TransactionFormPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/transactions/import',
-    element: (
-      <ProtectedRoute>
-        <ImportTransactionPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/transactions/export',
-    element: (
-      <ProtectedRoute>
-        <ExportTransactionPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/assets/new',
-    element: (
-      <ProtectedRoute>
-        <AssetFormPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/assets/:assetId/edit',
-    element: (
-      <ProtectedRoute>
-        <AssetFormPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/settings/categories/import',
-    element: (
-      <ProtectedRoute>
-        <ImportCategoryPage />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: 'ledgers/:ledgerId/assets/export',
-    element: (
-      <ProtectedRoute>
-        <ExportAssetPage />
-      </ProtectedRoute>
-    ),
   },
 ])

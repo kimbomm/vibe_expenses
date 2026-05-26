@@ -1,0 +1,129 @@
+import { useEffect } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { Button } from '@/shared/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import { TransactionFormContent } from '@/features/transaction-create'
+import { useTransactionStore } from '@/entities/transaction/model/store'
+import { useLedgerStore } from '@/entities/ledger/model/store'
+import { useAuthStore } from '@/entities/user/model/store'
+import type { Transaction } from '@/shared/types'
+
+export function TransactionFormPageMobile() {
+  const { ledgerId, transactionId } = useParams<{
+    ledgerId: string
+    transactionId?: string
+  }>()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user } = useAuthStore()
+
+  // 빈 배열을 상수로 정의하여 같은 참조를 유지
+  const EMPTY_ARRAY: Transaction[] = []
+
+  const transactions = useTransactionStore((state) => {
+    if (!ledgerId) return EMPTY_ARRAY
+    return state.transactions[ledgerId] || EMPTY_ARRAY
+  })
+  const fetchTransactionsByMonth = useTransactionStore((state) => state.fetchTransactionsByMonth)
+  const addTransaction = useTransactionStore((state) => state.addTransaction)
+  const updateTransaction = useTransactionStore((state) => state.updateTransaction)
+  const currentLedger = useLedgerStore((state) =>
+    ledgerId ? (state.ledgers.find((l) => l.id === ledgerId) ?? null) : null
+  )
+
+  // transactionId가 있으면 수정 모드 - useEffect보다 먼저 선언해야 함
+  const transaction = transactionId ? transactions.find((t) => t.id === transactionId) : undefined
+
+  // location.state에서 defaultDate와 defaultTransaction 가져오기
+  const defaultDate = location.state?.defaultDate as Date | null | undefined
+  const defaultTransaction = location.state?.defaultTransaction as Transaction | undefined
+
+  // 가계부별 거래내역 조회 (페이지 마운트 시)
+  // 수정 모드인 경우 해당 거래의 월을 조회, 아니면 현재 월 조회
+  useEffect(() => {
+    if (!ledgerId || !currentLedger?.encryptionKey) return
+
+    let year: number, month: number
+    if (transactionId && transaction) {
+      year = transaction.date.getFullYear()
+      month = transaction.date.getMonth() + 1
+    } else {
+      const now = new Date()
+      year = now.getFullYear()
+      month = now.getMonth() + 1
+    }
+
+    fetchTransactionsByMonth(ledgerId, year, month)
+  }, [ledgerId, transactionId, transaction, fetchTransactionsByMonth, currentLedger?.encryptionKey])
+
+  if (!ledgerId) {
+    return <div>가계부를 선택해주세요.</div>
+  }
+
+  const handleSubmit = async (
+    data: Omit<Transaction, 'id' | 'createdAt' | 'createdBy' | 'updatedBy'>
+  ) => {
+    if (!user) return
+
+    try {
+      if (transaction) {
+        await updateTransaction(transaction.id, data, user.uid)
+      } else {
+        await addTransaction(data, user.uid)
+      }
+      // 이전 페이지로 이동
+      const returnPath = location.state?.returnPath || `/ledgers/${ledgerId}/transactions`
+      navigate(returnPath)
+    } catch (error) {
+      console.error('거래 저장 실패:', error)
+      alert('거래 저장에 실패했습니다.')
+    }
+  }
+
+  const handleCancel = () => {
+    const returnPath = location.state?.returnPath || `/ledgers/${ledgerId}/transactions`
+    navigate(returnPath)
+  }
+
+  return (
+    <div className="flex h-screen flex-col">
+      {/* 헤더 */}
+      <div className="flex items-center gap-4 border-b bg-background p-4">
+        <Button variant="ghost" size="icon" onClick={handleCancel}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h2 className="text-lg font-semibold">{transaction ? '거래 수정' : '거래 추가'}</h2>
+      </div>
+      {/* 컨텐츠 */}
+      <div className="flex-1 overflow-y-auto p-4 pb-24">
+        <TransactionFormContent
+          ledgerId={ledgerId}
+          transaction={transaction}
+          defaultTransaction={defaultTransaction}
+          defaultDate={defaultDate}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          showButtons={false}
+        />
+      </div>
+      {/* 하단 고정 버튼 */}
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4">
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={handleCancel} className="flex-1">
+            취소
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              const form = document.getElementById('transaction-form') as HTMLFormElement
+              form?.requestSubmit()
+            }}
+            className="flex-1"
+          >
+            {transaction ? '수정' : '추가'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
